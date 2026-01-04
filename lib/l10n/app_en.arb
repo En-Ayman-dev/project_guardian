@@ -1,0 +1,9 @@
+{
+    "appName": "Project Guardian",
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "requiredField": "This field is required",
+    "serverError": "Server Error",
+    "networkError": "Check your internet connection"
+}

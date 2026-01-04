@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "621498694112",
+    "project_id": "project-guardian-enayman",
+    "storage_bucket": "project-guardian-enayman.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:621498694112:android:86bcc4c8d4e19355485385",
+        "android_client_info": {
+          "package_name": "com.example.project_guardian"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbeB8s7w9FU54DPT_xv-4MLO7MDlsZJJk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
