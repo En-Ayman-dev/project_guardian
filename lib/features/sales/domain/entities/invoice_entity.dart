@@ -2,76 +2,81 @@ import 'package:equatable/equatable.dart';
 import 'invoice_item_entity.dart';
 
 /// تحديد نوع الفاتورة: مبيعات، مشتريات، أو مرتجعات
-/// هذا الأساس الذي سيغير سلوك الواجهة والمخزون
 enum InvoiceType {
-  sales,          // فاتورة مبيعات (تنقص المخزون، تزيد الصندوق)
-  purchase,       // فاتورة مشتريات (تزيد المخزون، تنقص الصندوق)
-  salesReturn,    // مرتجع مبيعات (يزيد المخزون، ينقص الصندوق)
-  purchaseReturn  // مرتجع مشتريات (ينقص المخزون، يزيد الصندوق)
+  sales, // فاتورة مبيعات
+  purchase, // فاتورة مشتريات
+  salesReturn, // مرتجع مبيعات
+  purchaseReturn, // مرتجع مشتريات
 }
 
 /// حالة الفاتورة في النظام
 enum InvoiceStatus {
-  draft,    // مسودة: يمكن تعديلها، لا تؤثر على المخزون أو الحسابات
-  posted,   // مرحّلة: نهائية، تم خصم الكميات وتسجيل القيود المالية
-  canceled  // ملغاة: لا تؤثر في الحسابات ولكن تبقى في الأرشيف
+  draft, // مسودة
+  posted, // مرحّلة
+  canceled, // ملغاة
+}
+
+/// [NEW] نوع طريقة الدفع
+enum InvoicePaymentType {
+  cash, // نقد (يؤثر على الصندوق ولا يؤثر على رصيد العميل إلا بالصفر)
+  credit, // آجل (يؤثر على رصيد العميل/المورد)
 }
 
 /// حالة الدفع للفاتورة
 enum PaymentStatus {
-  unpaid,   // غير مدفوعة
-  partial,  // مدفوعة جزئياً
-  paid      // خالصة
+  unpaid, // غير مدفوعة
+  partial, // مدفوعة جزئياً
+  paid, // خالصة
 }
 
 class InvoiceEntity extends Equatable {
   final String id;
-  final String invoiceNumber;
-  
-  // التصنيف والحالة
+  final String invoiceNumber; // سيصبح رقماً تسلسلياً (مثلاً: 1001)
+
   final InvoiceType type;
   final InvoiceStatus status;
+  final InvoicePaymentType paymentType; // [NEW] طريقة الدفع
 
-  // بيانات الطرف الثاني (العميل في المبيعات / المورد في المشتريات)
   final String clientId;
   final String clientName;
 
-  // التواريخ
-  final DateTime date;      // تاريخ الإصدار
-  final DateTime? dueDate;  // تاريخ الاستحقاق (للفواتير الآجلة)
+  final DateTime date;
+  final DateTime? dueDate;
 
   final List<InvoiceItemEntity> items;
 
-  // الحسابات المالية
-  final double subTotal;    // المجموع قبل الخصم والضريبة
-  final double discount;    // قيمة الخصم الإجمالي
-  final double tax;         // قيمة الضريبة المضافة
-  final double totalAmount; // الصافي النهائي المستحق
-  
-  // المدفوعات
-  final double paidAmount;  // المبلغ المدفوع حتى الآن
-  final String? note;       // ملاحظات إضافية
+  final double subTotal;
+  final double discount;
+  final double tax;
+  final double totalAmount;
 
-  // Getters ذكية للمنطق
+  final double paidAmount;
+  final String? note;
+
+  // Getters
   double get remainingAmount => totalAmount - paidAmount;
-  
+
   PaymentStatus get paymentStatus {
-    if (paidAmount >= totalAmount) return PaymentStatus.paid;
+    // في حالة الدفع النقدي، نعتبرها مدفوعة دائماً عند الإنشاء
+    if (paymentType == InvoicePaymentType.cash) return PaymentStatus.paid;
+
+    if (paidAmount >= totalAmount - 0.01)
+      return PaymentStatus.paid; // سماحية بسيطة في الكسور
     if (paidAmount > 0) return PaymentStatus.partial;
     return PaymentStatus.unpaid;
   }
 
   bool get isPosted => status == InvoiceStatus.posted;
   bool get isDraft => status == InvoiceStatus.draft;
-
-  // هل هذه العملية تعتبر "إرجاع"؟
-  bool get isReturn => type == InvoiceType.salesReturn || type == InvoiceType.purchaseReturn;
+  bool get isReturn =>
+      type == InvoiceType.salesReturn || type == InvoiceType.purchaseReturn;
 
   const InvoiceEntity({
     required this.id,
     required this.invoiceNumber,
     required this.type,
     this.status = InvoiceStatus.draft,
+    this.paymentType = InvoicePaymentType.cash, // الافتراضي نقد
     required this.clientId,
     required this.clientName,
     required this.date,
@@ -87,20 +92,21 @@ class InvoiceEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        invoiceNumber,
-        type,
-        status,
-        clientId,
-        clientName,
-        date,
-        dueDate,
-        items,
-        subTotal,
-        discount,
-        tax,
-        totalAmount,
-        paidAmount,
-        note,
-      ];
+    id,
+    invoiceNumber,
+    type,
+    status,
+    paymentType, // إضافة للحقل
+    clientId,
+    clientName,
+    date,
+    dueDate,
+    items,
+    subTotal,
+    discount,
+    tax,
+    totalAmount,
+    paidAmount,
+    note,
+  ];
 }

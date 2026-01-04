@@ -110,46 +110,45 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i59.FirebaseAuth>(() => registerModule.firebaseAuth);
     gh.lazySingleton<_i974.FirebaseFirestore>(() => registerModule.firestore);
-    gh.lazySingleton<_i37.SalesRemoteDataSource>(
-      () => _i37.SalesRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
+    gh.lazySingleton<_i248.InventoryRemoteDataSource>(
+      () => _i248.InventoryRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
     );
     gh.lazySingleton<_i107.AuthRemoteDataSource>(
       () => _i107.AuthRemoteDataSourceImpl(gh<_i59.FirebaseAuth>()),
     );
-    gh.lazySingleton<_i248.InventoryRemoteDataSource>(
-      () => _i248.InventoryRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
-    );
     gh.lazySingleton<_i365.ProductRemoteDataSource>(
       () => _i365.ProductRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
-    );
-    gh.lazySingleton<_i437.ProductRepository>(
-      () => _i777.ProductRepositoryImpl(gh<_i365.ProductRemoteDataSource>()),
     );
     gh.lazySingleton<_i669.ClientSupplierRemoteDataSource>(
       () => _i669.ClientSupplierRemoteDataSourceImpl(
         gh<_i974.FirebaseFirestore>(),
       ),
     );
-    gh.lazySingleton<_i422.InventoryRepository>(
-      () =>
-          _i572.InventoryRepositoryImpl(gh<_i248.InventoryRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i787.AuthRepository>(
-      () => _i153.AuthRepositoryImpl(gh<_i107.AuthRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i215.AuthBloc>(
-      () => _i215.AuthBloc(gh<_i787.AuthRepository>()),
-    );
-    gh.lazySingleton<_i188.LoginUseCase>(
-      () => _i188.LoginUseCase(gh<_i787.AuthRepository>()),
-    );
-    gh.lazySingleton<_i434.SalesRepository>(
-      () => _i779.SalesRepositoryImpl(gh<_i37.SalesRemoteDataSource>()),
+    gh.lazySingleton<_i37.SalesRemoteDataSource>(
+      () => _i37.SalesRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
     );
     gh.lazySingleton<_i162.ClientSupplierRepository>(
       () => _i215.ClientSupplierRepositoryImpl(
         gh<_i669.ClientSupplierRemoteDataSource>(),
       ),
+    );
+    gh.lazySingleton<_i437.ProductRepository>(
+      () => _i777.ProductRepositoryImpl(gh<_i365.ProductRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i787.AuthRepository>(
+      () => _i153.AuthRepositoryImpl(gh<_i107.AuthRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i941.AddClientSupplierUseCase>(
+      () =>
+          _i941.AddClientSupplierUseCase(gh<_i162.ClientSupplierRepository>()),
+    );
+    gh.lazySingleton<_i39.GetClientsSuppliersUseCase>(
+      () =>
+          _i39.GetClientsSuppliersUseCase(gh<_i162.ClientSupplierRepository>()),
+    );
+    gh.lazySingleton<_i422.InventoryRepository>(
+      () =>
+          _i572.InventoryRepositoryImpl(gh<_i248.InventoryRemoteDataSource>()),
     );
     gh.lazySingleton<_i811.AddCategoryUseCase>(
       () => _i811.AddCategoryUseCase(gh<_i422.InventoryRepository>()),
@@ -175,27 +174,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i457.UpdateUnitUseCase>(
       () => _i457.UpdateUnitUseCase(gh<_i422.InventoryRepository>()),
     );
-    gh.lazySingleton<_i234.AddProductUseCase>(
-      () => _i234.AddProductUseCase(gh<_i437.ProductRepository>()),
+    gh.lazySingleton<_i188.LoginUseCase>(
+      () => _i188.LoginUseCase(gh<_i787.AuthRepository>()),
     );
-    gh.lazySingleton<_i789.DeleteProductUseCase>(
-      () => _i789.DeleteProductUseCase(gh<_i437.ProductRepository>()),
-    );
-    gh.lazySingleton<_i340.GetProductsUseCase>(
-      () => _i340.GetProductsUseCase(gh<_i437.ProductRepository>()),
-    );
-    gh.lazySingleton<_i855.UpdateProductUseCase>(
-      () => _i855.UpdateProductUseCase(gh<_i437.ProductRepository>()),
-    );
-    gh.factory<_i841.LoginCubit>(
-      () => _i841.LoginCubit(gh<_i188.LoginUseCase>()),
-    );
-    gh.factory<_i445.ProductCubit>(
-      () => _i445.ProductCubit(
-        gh<_i340.GetProductsUseCase>(),
-        gh<_i234.AddProductUseCase>(),
-        gh<_i855.UpdateProductUseCase>(),
-        gh<_i789.DeleteProductUseCase>(),
+    gh.factory<_i586.ClientSupplierCubit>(
+      () => _i586.ClientSupplierCubit(
+        gh<_i39.GetClientsSuppliersUseCase>(),
+        gh<_i941.AddClientSupplierUseCase>(),
       ),
     );
     gh.factory<_i506.InventorySettingsCubit>(
@@ -210,19 +195,41 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i457.UpdateUnitUseCase>(),
       ),
     );
-    gh.lazySingleton<_i941.AddClientSupplierUseCase>(
-      () =>
-          _i941.AddClientSupplierUseCase(gh<_i162.ClientSupplierRepository>()),
+    gh.lazySingleton<_i234.AddProductUseCase>(
+      () => _i234.AddProductUseCase(gh<_i437.ProductRepository>()),
     );
-    gh.lazySingleton<_i39.GetClientsSuppliersUseCase>(
-      () =>
-          _i39.GetClientsSuppliersUseCase(gh<_i162.ClientSupplierRepository>()),
+    gh.lazySingleton<_i789.DeleteProductUseCase>(
+      () => _i789.DeleteProductUseCase(gh<_i437.ProductRepository>()),
     );
-    gh.factory<_i586.ClientSupplierCubit>(
-      () => _i586.ClientSupplierCubit(
-        gh<_i39.GetClientsSuppliersUseCase>(),
-        gh<_i941.AddClientSupplierUseCase>(),
+    gh.lazySingleton<_i340.GetProductsUseCase>(
+      () => _i340.GetProductsUseCase(gh<_i437.ProductRepository>()),
+    );
+    gh.lazySingleton<_i855.UpdateProductUseCase>(
+      () => _i855.UpdateProductUseCase(gh<_i437.ProductRepository>()),
+    );
+    gh.lazySingleton<_i434.SalesRepository>(
+      () => _i779.SalesRepositoryImpl(gh<_i37.SalesRemoteDataSource>()),
+    );
+    gh.factory<_i445.ProductCubit>(
+      () => _i445.ProductCubit(
+        gh<_i340.GetProductsUseCase>(),
+        gh<_i234.AddProductUseCase>(),
+        gh<_i855.UpdateProductUseCase>(),
+        gh<_i789.DeleteProductUseCase>(),
       ),
+    );
+    gh.factory<_i629.DashboardCubit>(
+      () => _i629.DashboardCubit(
+        gh<_i434.SalesRepository>(),
+        gh<_i437.ProductRepository>(),
+        gh<_i162.ClientSupplierRepository>(),
+      ),
+    );
+    gh.factory<_i841.LoginCubit>(
+      () => _i841.LoginCubit(gh<_i188.LoginUseCase>()),
+    );
+    gh.lazySingleton<_i215.AuthBloc>(
+      () => _i215.AuthBloc(gh<_i787.AuthRepository>()),
     );
     gh.lazySingleton<_i61.AddInvoiceUseCase>(
       () => _i61.AddInvoiceUseCase(gh<_i434.SalesRepository>()),
@@ -236,25 +243,18 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1014.UpdateInvoiceUseCase>(
       () => _i1014.UpdateInvoiceUseCase(gh<_i434.SalesRepository>()),
     );
+    gh.factory<_i1069.InvoicesListCubit>(
+      () => _i1069.InvoicesListCubit(
+        gh<_i163.GetInvoicesUseCase>(),
+        gh<_i661.DeleteInvoiceUseCase>(),
+      ),
+    );
     gh.factory<_i740.SalesCubit>(
       () => _i740.SalesCubit(
         gh<_i61.AddInvoiceUseCase>(),
         gh<_i1014.UpdateInvoiceUseCase>(),
         gh<_i340.GetProductsUseCase>(),
         gh<_i39.GetClientsSuppliersUseCase>(),
-      ),
-    );
-    gh.factory<_i629.DashboardCubit>(
-      () => _i629.DashboardCubit(
-        gh<_i434.SalesRepository>(),
-        gh<_i437.ProductRepository>(),
-        gh<_i162.ClientSupplierRepository>(),
-      ),
-    );
-    gh.factory<_i1069.InvoicesListCubit>(
-      () => _i1069.InvoicesListCubit(
-        gh<_i163.GetInvoicesUseCase>(),
-        gh<_i661.DeleteInvoiceUseCase>(),
       ),
     );
     return this;

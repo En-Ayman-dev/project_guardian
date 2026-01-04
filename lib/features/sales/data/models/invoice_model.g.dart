@@ -13,6 +13,12 @@ _InvoiceModel _$InvoiceModelFromJson(Map<String, dynamic> json) =>
       status:
           $enumDecodeNullable(_$InvoiceStatusEnumMap, json['status']) ??
           InvoiceStatus.draft,
+      paymentType:
+          $enumDecodeNullable(
+            _$InvoicePaymentTypeEnumMap,
+            json['paymentType'],
+          ) ??
+          InvoicePaymentType.cash,
       clientId: json['clientId'] as String,
       clientName: json['clientName'] as String,
       date: const TimestampConverter().fromJson(json['date'] as Object),
@@ -36,6 +42,7 @@ Map<String, dynamic> _$InvoiceModelToJson(_InvoiceModel instance) =>
       'invoiceNumber': instance.invoiceNumber,
       'type': _$InvoiceTypeEnumMap[instance.type]!,
       'status': _$InvoiceStatusEnumMap[instance.status]!,
+      'paymentType': _$InvoicePaymentTypeEnumMap[instance.paymentType]!,
       'clientId': instance.clientId,
       'clientName': instance.clientName,
       'date': const TimestampConverter().toJson(instance.date),
@@ -63,6 +70,11 @@ const _$InvoiceStatusEnumMap = {
   InvoiceStatus.draft: 'draft',
   InvoiceStatus.posted: 'posted',
   InvoiceStatus.canceled: 'canceled',
+};
+
+const _$InvoicePaymentTypeEnumMap = {
+  InvoicePaymentType.cash: 'cash',
+  InvoicePaymentType.credit: 'credit',
 };
 
 Value? _$JsonConverterFromJson<Json, Value>(

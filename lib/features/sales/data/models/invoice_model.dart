@@ -18,9 +18,12 @@ abstract class InvoiceModel with _$InvoiceModel {
     @JsonKey(includeFromJson: false, includeToJson: false) String? id,
     required String invoiceNumber,
     
-    // --- حقول التصنيف والحالة الجديدة (ERP) ---
+    // --- حقول التصنيف والحالة (ERP) ---
     required InvoiceType type,
     @Default(InvoiceStatus.draft) InvoiceStatus status,
+    
+    // [NEW] طريقة الدفع (نقد / آجل)
+    @Default(InvoicePaymentType.cash) InvoicePaymentType paymentType,
     
     // بيانات العميل
     required String clientId,
@@ -28,7 +31,7 @@ abstract class InvoiceModel with _$InvoiceModel {
     
     // التواريخ
     @TimestampConverter() required DateTime date,
-    @TimestampConverter() DateTime? dueDate, // تاريخ الاستحقاق (قد يكون null)
+    @TimestampConverter() DateTime? dueDate, 
 
     // العناصر
     required List<InvoiceItemModel> items, 
@@ -58,6 +61,7 @@ abstract class InvoiceModel with _$InvoiceModel {
       invoiceNumber: invoiceNumber,
       type: type,
       status: status,
+      paymentType: paymentType, // [MAPPED]
       clientId: clientId,
       clientName: clientName,
       date: date,
@@ -78,6 +82,7 @@ abstract class InvoiceModel with _$InvoiceModel {
       invoiceNumber: entity.invoiceNumber,
       type: entity.type,
       status: entity.status,
+      paymentType: entity.paymentType, // [MAPPED]
       clientId: entity.clientId,
       clientName: entity.clientName,
       date: entity.date,

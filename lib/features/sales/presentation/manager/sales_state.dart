@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../../domain/entities/invoice_entity.dart'; // ضروري لـ InvoiceType
+import '../../domain/entities/invoice_entity.dart'; // يحتوي على InvoiceType و InvoicePaymentType
 import '../../domain/entities/invoice_item_entity.dart';
 import '../../../inventory/domain/entities/product_entity.dart';
 import '../../../clients_suppliers/domain/entities/client_supplier_entity.dart';
@@ -11,23 +11,27 @@ abstract class SalesState with _$SalesState {
   const factory SalesState({
     @Default(false) bool isLoading,
     
-    // البيانات المرجعية (Reference Data)
+    // البيانات المرجعية
     @Default([]) List<ProductEntity> products,
     @Default([]) List<ClientSupplierEntity> clients,
     
-    // بيانات العملية الحالية (Transaction Data)
-    @Default(InvoiceType.sales) InvoiceType invoiceType, // نوع الفاتورة الحالي
+    // بيانات العملية الحالية
+    @Default(InvoiceType.sales) InvoiceType invoiceType,
+    @Default(InvoicePaymentType.cash) InvoicePaymentType paymentType, // [NEW] طريقة الدفع
     @Default([]) List<InvoiceItemEntity> cartItems,
     
-    // الحسابات المالية (Financials)
+    // الحسابات المالية
     @Default(0.0) double subTotal,
-    @Default(0.0) double discount,   // الخصم
+    @Default(0.0) double discount,
     @Default(0.0) double tax,
     @Default(0.0) double totalAmount,
-    @Default(0.0) double paidAmount, // المبلغ المدفوع (للآجل/النقدي)
+    @Default(0.0) double paidAmount,
     
-    // حالة التحكم (Control State)
+    // حالة التحكم
     String? errorMessage,
     @Default(false) bool isSuccess,
+    
+    // [NEW] الفاتورة التي تم حفظها للتو (لغرض الطباعة وإخفاء زر الحفظ)
+    InvoiceEntity? lastSavedInvoice, 
   }) = _SalesState;
 }

@@ -20,6 +20,8 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   static const String _invoicesCollection = 'invoices';
   static const String _productsCollection = 'products';
   static const String _clientsCollection = 'clients_suppliers';
+  static const String _countersCollection = 'settings';
+  static const String _countersDoc = 'counters';
 
   @override
   Future<List<InvoiceModel>> getInvoices() async {
@@ -40,12 +42,21 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   Future<void> addInvoice(InvoiceModel invoice) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // --- PHASE 1: READ ---
+        // --- PHASE 1: READ EVERYTHING FIRST (CRITICAL FOR FIRESTORE) ---
+
+        // 1. Read Counter (للحصول على الرقم)
+        final counterRef = _firestore
+            .collection(_countersCollection)
+            .doc(_countersDoc);
+        final counterSnapshot = await transaction.get(counterRef);
+
+        // 2. Read Products
         final productSnapshots = await _readProducts(
           transaction,
           invoice.items,
         );
 
+        // 3. Read Client
         DocumentSnapshot? clientSnapshot;
         if (invoice.clientId.isNotEmpty) {
           final clientRef = _firestore
@@ -56,49 +67,71 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
 
         // --- PHASE 2: CALCULATE ---
 
-        // 1. Calculate Stock Impact
+        // A. Prepare Invoice Number
+        int nextNumber = 1;
+        String fieldName = _getCounterFieldName(invoice.type);
+
+        if (counterSnapshot.exists) {
+          final data = counterSnapshot.data() as Map<String, dynamic>;
+          final current = data[fieldName] as int? ?? 0;
+          nextNumber = current + 1;
+        }
+
+        final invoiceWithNumber = invoice.copyWith(
+          invoiceNumber: nextNumber.toString(),
+        );
+
+        // B. Calculate Stock Impact
         final stockUpdates = _calculateStockUpdates(
-          invoice: invoice,
+          invoice: invoiceWithNumber,
           productSnapshots: productSnapshots,
           isRevert: false,
         );
 
-        // 2. Calculate Client Balance Impact
+        // C. Calculate Client Balance Impact
         double? newClientBalance;
         if (clientSnapshot != null && clientSnapshot.exists) {
-          // التصحيح هنا: تحويل صريح إلى double
-          final currentBal =
-              ((clientSnapshot.data() as Map<String, dynamic>)['balance']
-                      as num?)
-                  ?.toDouble() ??
-              0.0;
+          if (invoice.paymentType == InvoicePaymentType.credit) {
+            final currentBal =
+                ((clientSnapshot.data() as Map<String, dynamic>)['balance']
+                        as num?)
+                    ?.toDouble() ??
+                0.0;
 
-          newClientBalance = _calculateClientBalance(
-            currentBalance: currentBal,
-            invoice: invoice,
-            isRevert: false,
-          );
+            newClientBalance = _calculateClientBalance(
+              currentBalance: currentBal,
+              invoice: invoiceWithNumber,
+              isRevert: false,
+            );
+          }
         }
 
-        // --- PHASE 3: WRITE ---
+        // --- PHASE 3: WRITE EVERYTHING LAST ---
 
-        // 1. Update Products
+        // 1. Update Counter
+        if (counterSnapshot.exists) {
+          transaction.update(counterRef, {fieldName: nextNumber});
+        } else {
+          transaction.set(counterRef, {fieldName: 1});
+        }
+
+        // 2. Update Products
         for (final update in stockUpdates.entries) {
           transaction.update(update.key, {'stock': update.value});
         }
 
-        // 2. Update Client Balance
+        // 3. Update Client Balance
         if (newClientBalance != null && clientSnapshot != null) {
           transaction.update(clientSnapshot.reference, {
             'balance': newClientBalance,
           });
         }
 
-        // 3. Save Invoice
+        // 4. Save Invoice
         final invoiceRef = _firestore
             .collection(_invoicesCollection)
-            .doc(invoice.id);
-        transaction.set(invoiceRef, invoice.toJson());
+            .doc(invoiceWithNumber.id);
+        transaction.set(invoiceRef, invoiceWithNumber.toJson());
       });
     } catch (e) {
       throw ServerFailure(e.toString());
@@ -124,33 +157,30 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
         }
 
         // --- PHASE 2: CALCULATE ---
-
-        // 1. Revert Stock
         final stockUpdates = _calculateStockUpdates(
           invoice: invoice,
           productSnapshots: productSnapshots,
           isRevert: true,
         );
 
-        // 2. Revert Client Balance
         double? newClientBalance;
         if (clientSnapshot != null && clientSnapshot.exists) {
-          // التصحيح هنا: تحويل صريح إلى double
-          final currentBal =
-              ((clientSnapshot.data() as Map<String, dynamic>)['balance']
-                      as num?)
-                  ?.toDouble() ??
-              0.0;
+          if (invoice.paymentType == InvoicePaymentType.credit) {
+            final currentBal =
+                ((clientSnapshot.data() as Map<String, dynamic>)['balance']
+                        as num?)
+                    ?.toDouble() ??
+                0.0;
 
-          newClientBalance = _calculateClientBalance(
-            currentBalance: currentBal,
-            invoice: invoice,
-            isRevert: true,
-          );
+            newClientBalance = _calculateClientBalance(
+              currentBalance: currentBal,
+              invoice: invoice,
+              isRevert: true,
+            );
+          }
         }
 
         // --- PHASE 3: WRITE ---
-
         for (final update in stockUpdates.entries) {
           transaction.update(update.key, {'stock': update.value});
         }
@@ -175,9 +205,7 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   Future<void> updateInvoice(InvoiceModel newInvoice) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // --- PHASE 1: READ EVERYTHING ---
-
-        // 1. Read Old Invoice
+        // --- PHASE 1: READ ---
         final invoiceRef = _firestore
             .collection(_invoicesCollection)
             .doc(newInvoice.id);
@@ -188,11 +216,9 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
         }
         final oldInvoice = InvoiceModel.fromFirestore(invoiceSnapshot);
 
-        // 2. Read Products (Old + New)
         final allItems = [...oldInvoice.items, ...newInvoice.items];
         final productSnapshots = await _readProducts(transaction, allItems);
 
-        // 3. Read Client
         DocumentSnapshot? clientSnapshot;
         if (newInvoice.clientId.isNotEmpty) {
           final clientRef = _firestore
@@ -201,15 +227,12 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           clientSnapshot = await transaction.get(clientRef);
         }
 
-        // --- PHASE 2: CALCULATE NET IMPACT ---
-
+        // --- PHASE 2: CALCULATE ---
         final tempStock = <String, double>{};
 
-        // Helper to get current stock safely as double
         double getCurrentStock(String pid) {
           if (tempStock.containsKey(pid)) return tempStock[pid]!;
           final snap = productSnapshots[pid];
-          // التصحيح هنا: تحويل صريح إلى double
           return (snap != null && snap.exists)
               ? ((snap.data() as Map<String, dynamic>)['stock'] as num?)
                         ?.toDouble() ??
@@ -242,37 +265,38 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
               "Insufficient stock for product: ${item.productName}",
             );
           }
-
           tempStock[item.productId] = current + change;
         }
 
-        // B. Client Balance Calculation
+        // Client Balance
         double? finalClientBalance;
         if (clientSnapshot != null && clientSnapshot.exists) {
-          // التصحيح هنا: تحويل صريح إلى double
           double currentBalance =
               ((clientSnapshot.data() as Map<String, dynamic>)['balance']
                       as num?)
                   ?.toDouble() ??
               0.0;
 
-          // Revert Old Balance Impact
-          currentBalance = _calculateNewBalanceFromBase(
-            currentBalance,
-            oldInvoice,
-            isRevert: true,
-          );
+          if (oldInvoice.paymentType == InvoicePaymentType.credit) {
+            currentBalance = _calculateNewBalanceFromBase(
+              currentBalance,
+              oldInvoice,
+              isRevert: true,
+            );
+          }
 
-          // Apply New Balance Impact
-          finalClientBalance = _calculateNewBalanceFromBase(
-            currentBalance,
-            newInvoice,
-            isRevert: false,
-          );
+          if (newInvoice.paymentType == InvoicePaymentType.credit) {
+            finalClientBalance = _calculateNewBalanceFromBase(
+              currentBalance,
+              newInvoice,
+              isRevert: false,
+            );
+          } else {
+            finalClientBalance = currentBalance;
+          }
         }
 
         // --- PHASE 3: WRITE ---
-
         for (final entry in tempStock.entries) {
           final snap = productSnapshots[entry.key];
           if (snap != null && snap.exists) {
@@ -294,6 +318,19 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   }
 
   // --- Helper Methods ---
+
+  String _getCounterFieldName(InvoiceType type) {
+    switch (type) {
+      case InvoiceType.sales:
+        return 'sales_counter';
+      case InvoiceType.purchase:
+        return 'purchase_counter';
+      case InvoiceType.salesReturn:
+        return 'sales_return_counter';
+      case InvoiceType.purchaseReturn:
+        return 'purchase_return_counter';
+    }
+  }
 
   Future<Map<String, DocumentSnapshot>> _readProducts(
     Transaction t,
@@ -324,7 +361,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
         throw ServerFailure("Product ${item.productName} not found!");
       }
 
-      // التصحيح هنا: تحويل صريح إلى double
       final currentStock =
           ((snapshot.data() as Map<String, dynamic>)['stock'] as num?)
               ?.toDouble() ??

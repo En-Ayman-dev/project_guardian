@@ -43,9 +43,13 @@ class SalesCubit extends Cubit<SalesState> {
       state.copyWith(
         isLoading: true,
         errorMessage: null,
-        isSuccess: false, // [FIX] تصفير حالة النجاح لمنع تكرار السناك بار
+        isSuccess: false,
+        lastSavedInvoice: null, // تصفير آخر فاتورة محفوظة
 
         invoiceType: invoiceToEdit?.type ?? type,
+        // إذا كنا نعدل، نأخذ نوع الدفع من الفاتورة القديمة
+        paymentType: invoiceToEdit?.paymentType ?? InvoicePaymentType.cash,
+
         cartItems: invoiceToEdit?.items ?? [],
         subTotal: invoiceToEdit?.subTotal ?? 0,
         totalAmount: invoiceToEdit?.totalAmount ?? 0,
@@ -54,35 +58,33 @@ class SalesCubit extends Cubit<SalesState> {
       ),
     );
 
-    final targetClientType = _mapInvoiceTypeToClientType(state.invoiceType);
-
-    final results = await Future.wait([
-      _getProductsUseCase(),
-      _getClientsUseCase(targetClientType),
-    ]);
-
-    if (isClosed) return;
-
-    final productsResult = results[0] as dynamic;
-    final clientsResult = results[1] as dynamic;
-
-    final products = productsResult.getOrElse(() => <ProductEntity>[]);
-    final clients = clientsResult.getOrElse(() => <ClientSupplierEntity>[]);
-
-    emit(
-      state.copyWith(isLoading: false, products: products, clients: clients),
-    );
+    await _loadDependencies();
   }
 
+  /// تغيير نوع الفاتورة (مبيعات/مشتريات/...)
   Future<void> changeInvoiceType(InvoiceType type) async {
     if (_editingInvoice != null) return;
     if (state.invoiceType == type) return;
     await initialize(type: type);
   }
 
-  void addItem(InvoiceItemEntity newItem) {
+  /// [NEW] تغيير طريقة الدفع (نقد/أجل)
+  void setPaymentType(InvoicePaymentType type) {
     if (isClosed) return;
 
+    // منطق ذكي: إذا نقد، المدفوع = الإجمالي. إذا أجل، المدفوع = 0 مبدئياً
+    double newPaidAmount = state.paidAmount;
+    if (type == InvoicePaymentType.cash) {
+      newPaidAmount = state.totalAmount;
+    } else {
+      newPaidAmount = 0;
+    }
+
+    emit(state.copyWith(paymentType: type, paidAmount: newPaidAmount));
+  }
+
+  void addItem(InvoiceItemEntity newItem) {
+    if (isClosed) return;
     final currentCart = List<InvoiceItemEntity>.from(state.cartItems);
     final existingIndex = currentCart.indexWhere(
       (item) => item.productId == newItem.productId,
@@ -91,7 +93,6 @@ class SalesCubit extends Cubit<SalesState> {
     if (existingIndex != -1) {
       final existingItem = currentCart[existingIndex];
       final updatedQuantity = existingItem.quantity + newItem.quantity;
-
       currentCart[existingIndex] = existingItem.copyWith(
         quantity: updatedQuantity,
         total: updatedQuantity * existingItem.price,
@@ -99,26 +100,21 @@ class SalesCubit extends Cubit<SalesState> {
     } else {
       currentCart.add(newItem);
     }
-
     _calculateTotals(cart: currentCart);
   }
 
   void updateItemQuantity(int index, int newQuantity) {
     if (isClosed) return;
-
     if (newQuantity <= 0) {
       removeItem(index);
       return;
     }
-
     final currentCart = List<InvoiceItemEntity>.from(state.cartItems);
     final item = currentCart[index];
-
     currentCart[index] = item.copyWith(
       quantity: newQuantity,
       total: newQuantity * item.price,
     );
-
     _calculateTotals(cart: currentCart);
   }
 
@@ -138,12 +134,12 @@ class SalesCubit extends Cubit<SalesState> {
     emit(state.copyWith(paidAmount: amount));
   }
 
+  /// المحرك الحسابي
   void _calculateTotals({
     List<InvoiceItemEntity>? cart,
     double? discountOverride,
   }) {
     if (isClosed) return;
-
     final currentCart = cart ?? state.cartItems;
     final discount = discountOverride ?? state.discount;
 
@@ -152,12 +148,15 @@ class SalesCubit extends Cubit<SalesState> {
       subTotal += item.total;
     }
 
-    // [FIX] إلغاء الضريبة تماماً
-    double tax = 0;
-
-    // الإجمالي = المجموع الفرعي - الخصم (بدون ضريبة)
+    double tax = 0; // الضريبة ملغاة
     double total = (subTotal - discount);
     if (total < 0) total = 0;
+
+    // تحديث المدفوع تلقائياً إذا كان الدفع نقداً
+    double paid = state.paidAmount;
+    if (state.paymentType == InvoicePaymentType.cash) {
+      paid = total;
+    }
 
     emit(
       state.copyWith(
@@ -166,6 +165,7 @@ class SalesCubit extends Cubit<SalesState> {
         discount: discount,
         tax: tax,
         totalAmount: total,
+        paidAmount: paid,
       ),
     );
   }
@@ -181,20 +181,21 @@ class SalesCubit extends Cubit<SalesState> {
 
     const status = InvoiceStatus.posted;
 
+    // في حالة الإضافة، الـ invoiceNumber سيتم توليده في الـ DataSource
+    // لذا نمرر قيمة مؤقتة هنا وسيتم استبدالها هناك.
     final invoiceId = _editingInvoice?.id ?? const Uuid().v4();
-    final invoiceNumber =
-        _editingInvoice?.invoiceNumber ??
-        DateTime.now().millisecondsSinceEpoch.toString().substring(5);
+    final invoiceNumber = _editingInvoice?.invoiceNumber ?? "TEMP";
 
     final invoice = InvoiceEntity(
       id: invoiceId,
       invoiceNumber: invoiceNumber,
       type: state.invoiceType,
       status: status,
+      paymentType: state.paymentType, // [MAPPED]
       clientId: clientId,
       clientName: clientName,
       date: DateTime.now(),
-      dueDate: state.paidAmount < state.totalAmount
+      dueDate: state.paymentType == InvoicePaymentType.credit
           ? DateTime.now().add(const Duration(days: 30))
           : null,
       items: state.cartItems,
@@ -216,72 +217,70 @@ class SalesCubit extends Cubit<SalesState> {
       (failure) =>
           emit(state.copyWith(isLoading: false, errorMessage: failure.message)),
       (_) {
+        // عند النجاح، نحفظ الفاتورة في الحالة ولا نصفر البيانات فوراً
+        // لكي نعرض زر الطباعة
         emit(
           state.copyWith(
             isLoading: false,
             isSuccess: true,
-            // تصفير القيم بعد النجاح
-            cartItems: [],
-            subTotal: 0,
-            totalAmount: 0,
-            paidAmount: 0,
-            discount: 0,
+            lastSavedInvoice: invoice, // حفظ الفاتورة للطباعة
           ),
         );
+
+        // ملاحظة: لا نصفر cartItems هنا، بل نترك للمستخدم خيار "فاتورة جديدة"
+        // أو الطباعة ثم الخروج.
         _editingInvoice = null;
       },
     );
   }
 
-  ClientType _mapInvoiceTypeToClientType(InvoiceType invoiceType) {
-    switch (invoiceType) {
-      case InvoiceType.sales:
-      case InvoiceType.salesReturn:
-        return ClientType.client;
-      case InvoiceType.purchase:
-      case InvoiceType.purchaseReturn:
-        return ClientType.supplier;
-    }
+  /// دالة لبدء فاتورة جديدة بعد النجاح
+  void resetAfterSuccess() {
+    initialize(type: state.invoiceType);
   }
+
+  // --- Helpers ---
 
   Future<void> initializeForReturn(InvoiceEntity originalInvoice) async {
     if (isClosed) return;
+    _editingInvoice = null;
 
     InvoiceType returnType;
-    switch (originalInvoice.type) {
-      case InvoiceType.sales:
-        returnType = InvoiceType.salesReturn;
-        break;
-      case InvoiceType.purchase:
-        returnType = InvoiceType.purchaseReturn;
-        break;
-      default:
-        returnType = InvoiceType.salesReturn;
+    if (originalInvoice.type == InvoiceType.sales) {
+      returnType = InvoiceType.salesReturn;
+    } else if (originalInvoice.type == InvoiceType.purchase) {
+      returnType = InvoiceType.purchaseReturn;
+    } else {
+      returnType = InvoiceType.salesReturn;
     }
 
     emit(
       state.copyWith(
         isLoading: true,
         errorMessage: null,
-        isSuccess: false, // [FIX] تصفير حالة النجاح
+        isSuccess: false,
+        lastSavedInvoice: null,
+
         invoiceType: returnType,
+        // في المرتجع، غالباً الدفع يكون نقد (إرجاع مال) أو خصم من الدين
+        // سنفترضه نقد مبدئياً
+        paymentType: InvoicePaymentType.cash,
+
         cartItems: originalInvoice.items.map((e) => e.copyWith()).toList(),
         subTotal: originalInvoice.subTotal,
-
-        // إعادة حساب الإجمالي بناءً على القيم الأصلية لكن بدون ضريبة لو أردنا،
-        // أو نعتمد القيم كما هي إذا كانت الفاتورة القديمة بها ضريبة،
-        // لكن بما أنك لغيت الضريبة، يفضل تصفيرها هنا أيضاً للمستقبل:
-        tax: 0,
-        // نقوم بتعديل التوتال ليكون بدون ضريبة
         totalAmount: originalInvoice.subTotal - originalInvoice.discount,
-
         discount: originalInvoice.discount,
-        paidAmount: 0,
+        paidAmount:
+            originalInvoice.subTotal - originalInvoice.discount, // لأنه نقد
+        tax: 0,
       ),
     );
 
-    final targetClientType = _mapInvoiceTypeToClientType(returnType);
+    await _loadDependencies();
+  }
 
+  Future<void> _loadDependencies() async {
+    final targetClientType = _mapInvoiceTypeToClientType(state.invoiceType);
     final results = await Future.wait([
       _getProductsUseCase(),
       _getClientsUseCase(targetClientType),
@@ -298,5 +297,16 @@ class SalesCubit extends Cubit<SalesState> {
     emit(
       state.copyWith(isLoading: false, products: products, clients: clients),
     );
+  }
+
+  ClientType _mapInvoiceTypeToClientType(InvoiceType invoiceType) {
+    switch (invoiceType) {
+      case InvoiceType.sales:
+      case InvoiceType.salesReturn:
+        return ClientType.client;
+      case InvoiceType.purchase:
+      case InvoiceType.purchaseReturn:
+        return ClientType.supplier;
+    }
   }
 }
