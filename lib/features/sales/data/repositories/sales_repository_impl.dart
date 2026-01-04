@@ -18,7 +18,8 @@ class SalesRepositoryImpl implements SalesRepository {
       final models = await _remoteDataSource.getInvoices();
       return Right(models.map((m) => m.toEntity()).toList());
     } catch (e) {
-      return const Left(ServerFailure('Failed to fetch invoices'));
+      // تمرير الرسالة الأصلية للمساعدة في التشخيص
+      return Left(ServerFailure(e.toString()));
     }
   }
 
@@ -28,8 +29,27 @@ class SalesRepositoryImpl implements SalesRepository {
       await _remoteDataSource.addInvoice(InvoiceModel.fromEntity(invoice));
       return const Right(null);
     } catch (e) {
-      // نمرر رسالة الخطأ القادمة من المصدر (قد تكون "Product not found" أو غيرها)
-      return Left(ServerFailure(e is ServerFailure ? e.message : 'Failed to add invoice'));
+      return Left(ServerFailure(e is ServerFailure ? e.message : e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteInvoice(InvoiceEntity invoice) async {
+    try {
+      await _remoteDataSource.deleteInvoice(InvoiceModel.fromEntity(invoice));
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e is ServerFailure ? e.message : e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateInvoice(InvoiceEntity invoice) async {
+    try {
+      await _remoteDataSource.updateInvoice(InvoiceModel.fromEntity(invoice));
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e is ServerFailure ? e.message : e.toString()));
     }
   }
 }

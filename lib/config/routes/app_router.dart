@@ -12,6 +12,8 @@ import '../../features/inventory/presentation/pages/inventory_settings_page.dart
 import '../../features/inventory/presentation/pages/product_form_page.dart';
 import '../../features/inventory/presentation/pages/products_page.dart';
 import '../../features/sales/presentation/pages/pos_page.dart';
+// --- Import الصفحة الجديدة ---
+import '../../features/sales/presentation/pages/invoices_list_page.dart'; 
 
 final goRouter = GoRouter(
   initialLocation: '/home',
@@ -24,7 +26,6 @@ final goRouter = GoRouter(
     final authState = getIt<AuthBloc>().state;
 
     // 3. التحقق من حالة "الانتظار" (Initial)
-    // إذا كانت الحالة مبدئية، لا نتخذ أي قرار (ننتظر Firebase)
     final bool isInitializing = authState.maybeWhen(
       initial: () => true,
       orElse: () => false,
@@ -39,22 +40,25 @@ final goRouter = GoRouter(
 
     final bool isLoggingIn = state.matchedLocation == '/login';
 
-    // المنطق: إذا لم يكن مسجلاً ولا يحاول الدخول -> اذهب للدخول
     if (!isLoggedIn && !isLoggingIn) {
       return '/login';
     }
 
-    // المنطق: إذا كان مسجلاً ويحاول الدخول -> ارجعه للرئيسية
     if (isLoggedIn && isLoggingIn) {
       return '/home';
     }
 
-    return null; // لا تغيير
+    return null; 
   },
 
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/home', builder: (context, state) => const DashboardPage()),
+    
+    // --- المسار الجديد: سجل الفواتير ---
+    GoRoute(path: '/invoices', builder: (context, state) => const InvoicesListPage()),
+    // -----------------------------------
+
     GoRoute(
       path: '/clients-suppliers',
       builder: (context, state) => const ClientsSuppliersPage(),

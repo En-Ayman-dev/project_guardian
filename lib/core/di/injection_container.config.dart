@@ -85,8 +85,14 @@ import '../../features/sales/data/repositories/sales_repository_impl.dart'
 import '../../features/sales/domain/repositories/sales_repository.dart'
     as _i434;
 import '../../features/sales/domain/usecases/add_invoice_usecase.dart' as _i61;
+import '../../features/sales/domain/usecases/delete_invoice_usecase.dart'
+    as _i661;
 import '../../features/sales/domain/usecases/get_invoices_usecase.dart'
     as _i163;
+import '../../features/sales/domain/usecases/update_invoice_usecase.dart'
+    as _i1014;
+import '../../features/sales/presentation/manager/invoices_list_cubit.dart'
+    as _i1069;
 import '../../features/sales/presentation/manager/sales_cubit.dart' as _i740;
 import 'register_module.dart' as _i291;
 
@@ -221,8 +227,22 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i61.AddInvoiceUseCase>(
       () => _i61.AddInvoiceUseCase(gh<_i434.SalesRepository>()),
     );
+    gh.lazySingleton<_i661.DeleteInvoiceUseCase>(
+      () => _i661.DeleteInvoiceUseCase(gh<_i434.SalesRepository>()),
+    );
     gh.lazySingleton<_i163.GetInvoicesUseCase>(
       () => _i163.GetInvoicesUseCase(gh<_i434.SalesRepository>()),
+    );
+    gh.lazySingleton<_i1014.UpdateInvoiceUseCase>(
+      () => _i1014.UpdateInvoiceUseCase(gh<_i434.SalesRepository>()),
+    );
+    gh.factory<_i740.SalesCubit>(
+      () => _i740.SalesCubit(
+        gh<_i61.AddInvoiceUseCase>(),
+        gh<_i1014.UpdateInvoiceUseCase>(),
+        gh<_i340.GetProductsUseCase>(),
+        gh<_i39.GetClientsSuppliersUseCase>(),
+      ),
     );
     gh.factory<_i629.DashboardCubit>(
       () => _i629.DashboardCubit(
@@ -231,11 +251,10 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i162.ClientSupplierRepository>(),
       ),
     );
-    gh.factory<_i740.SalesCubit>(
-      () => _i740.SalesCubit(
-        gh<_i61.AddInvoiceUseCase>(),
-        gh<_i340.GetProductsUseCase>(),
-        gh<_i39.GetClientsSuppliersUseCase>(),
+    gh.factory<_i1069.InvoicesListCubit>(
+      () => _i1069.InvoicesListCubit(
+        gh<_i163.GetInvoicesUseCase>(),
+        gh<_i661.DeleteInvoiceUseCase>(),
       ),
     );
     return this;

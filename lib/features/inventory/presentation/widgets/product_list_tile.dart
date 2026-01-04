@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import '../../domain/entities/product_entity.dart';
 
@@ -19,7 +21,7 @@ class ProductListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     // 1. استخراج الوحدة الأساسية للعرض
     final baseUnit = product.baseUnit;
-    
+
     // تنبيه إذا المخزون أقل من الحد الأدنى
     final isLowStock = product.stock <= product.minStockAlert;
 
@@ -28,26 +30,37 @@ class ProductListTile extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: CircleAvatar(
-          backgroundColor: isLowStock ? Colors.red.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+          backgroundColor: isLowStock
+              ? Colors.red.withOpacity(0.1)
+              : Colors.blue.withOpacity(0.1),
           child: Icon(
-            Icons.inventory_2, 
+            Icons.inventory_2,
             color: isLowStock ? Colors.red : Colors.blue,
           ),
         ),
-        title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          product.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // عرض اسم التصنيف
-            Text(product.categoryName, style: Theme.of(context).textTheme.bodySmall),
-            
+            Text(
+              product.categoryName,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+
             // 2. عرض بيانات الوحدة الأساسية (السعر والباركود)
             Text(
-              'Unit: ${baseUnit.unitName} | Sell: ${baseUnit.sellPrice}', 
-              style: Theme.of(context).textTheme.bodySmall
+              'Unit: ${baseUnit.unitName} | Sell: ${baseUnit.sellPrice}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (baseUnit.barcode != null)
-               Text('Barcode: ${baseUnit.barcode}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              Text(
+                'Barcode: ${baseUnit.barcode}',
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
           ],
         ),
         trailing: Row(

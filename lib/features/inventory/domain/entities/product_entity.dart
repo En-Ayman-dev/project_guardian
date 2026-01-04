@@ -6,11 +6,13 @@ class ProductEntity extends Equatable {
   final String name;
   final String? description;
   
+  // --- تمت الإضافة: حقل الباركود لدعم البحث السريع ---
+  final String? barcode; 
+  
   // التصنيف يبقى كما هو
   final String categoryId;
   final String categoryName;
   
-  // --- التغيير الجذري هنا ---
   // بدلاً من وحدة واحدة، لدينا قائمة وحدات
   // أول عنصر في القائمة يعتبر هو "الوحدة الأساسية" (Base Unit)
   final List<ProductUnitEntity> units; 
@@ -24,6 +26,7 @@ class ProductEntity extends Equatable {
     required this.id,
     required this.name,
     this.description,
+    this.barcode, // إضافة الباركود في البناء (اختياري)
     required this.categoryId,
     required this.categoryName,
     required this.units, // القائمة الجديدة
@@ -34,7 +37,7 @@ class ProductEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-    id, name, description, categoryId, units, stock, minStockAlert
+    id, name, description, barcode, categoryId, units, stock, minStockAlert
   ];
 
   // دالة مساعدة للحصول على الوحدة الأساسية بسهولة

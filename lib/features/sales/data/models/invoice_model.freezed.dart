@@ -15,8 +15,14 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$InvoiceModel {
 
-@JsonKey(includeFromJson: false, includeToJson: false) String? get id; String get invoiceNumber; String get clientId; String get clientName;@TimestampConverter() DateTime get date;// القائمة التي تسبب المشكلة إذا لم يكن explicitToJson مفعلاً
- List<InvoiceItemModel> get items; double get subTotal; double get discount; double get tax; double get totalAmount;
+@JsonKey(includeFromJson: false, includeToJson: false) String? get id; String get invoiceNumber;// --- حقول التصنيف والحالة الجديدة (ERP) ---
+ InvoiceType get type; InvoiceStatus get status;// بيانات العميل
+ String get clientId; String get clientName;// التواريخ
+@TimestampConverter() DateTime get date;@TimestampConverter() DateTime? get dueDate;// تاريخ الاستحقاق (قد يكون null)
+// العناصر
+ List<InvoiceItemModel> get items;// الحسابات المالية
+ double get subTotal; double get discount; double get tax; double get totalAmount;// المدفوعات والملاحظات
+ double get paidAmount; String? get note;
 /// Create a copy of InvoiceModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +35,16 @@ $InvoiceModelCopyWith<InvoiceModel> get copyWith => _$InvoiceModelCopyWithImpl<I
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvoiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.invoiceNumber, invoiceNumber) || other.invoiceNumber == invoiceNumber)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.clientName, clientName) || other.clientName == clientName)&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvoiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.invoiceNumber, invoiceNumber) || other.invoiceNumber == invoiceNumber)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.clientName, clientName) || other.clientName == clientName)&&(identical(other.date, date) || other.date == date)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.note, note) || other.note == note));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,invoiceNumber,clientId,clientName,date,const DeepCollectionEquality().hash(items),subTotal,discount,tax,totalAmount);
+int get hashCode => Object.hash(runtimeType,id,invoiceNumber,type,status,clientId,clientName,date,dueDate,const DeepCollectionEquality().hash(items),subTotal,discount,tax,totalAmount,paidAmount,note);
 
 @override
 String toString() {
-  return 'InvoiceModel(id: $id, invoiceNumber: $invoiceNumber, clientId: $clientId, clientName: $clientName, date: $date, items: $items, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount)';
+  return 'InvoiceModel(id: $id, invoiceNumber: $invoiceNumber, type: $type, status: $status, clientId: $clientId, clientName: $clientName, date: $date, dueDate: $dueDate, items: $items, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount, paidAmount: $paidAmount, note: $note)';
 }
 
 
@@ -49,7 +55,7 @@ abstract mixin class $InvoiceModelCopyWith<$Res>  {
   factory $InvoiceModelCopyWith(InvoiceModel value, $Res Function(InvoiceModel) _then) = _$InvoiceModelCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeFromJson: false, includeToJson: false) String? id, String invoiceNumber, String clientId, String clientName,@TimestampConverter() DateTime date, List<InvoiceItemModel> items, double subTotal, double discount, double tax, double totalAmount
+@JsonKey(includeFromJson: false, includeToJson: false) String? id, String invoiceNumber, InvoiceType type, InvoiceStatus status, String clientId, String clientName,@TimestampConverter() DateTime date,@TimestampConverter() DateTime? dueDate, List<InvoiceItemModel> items, double subTotal, double discount, double tax, double totalAmount, double paidAmount, String? note
 });
 
 
@@ -66,19 +72,24 @@ class _$InvoiceModelCopyWithImpl<$Res>
 
 /// Create a copy of InvoiceModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? invoiceNumber = null,Object? clientId = null,Object? clientName = null,Object? date = null,Object? items = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? invoiceNumber = null,Object? type = null,Object? status = null,Object? clientId = null,Object? clientName = null,Object? date = null,Object? dueDate = freezed,Object? items = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,Object? paidAmount = null,Object? note = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,invoiceNumber: null == invoiceNumber ? _self.invoiceNumber : invoiceNumber // ignore: cast_nullable_to_non_nullable
-as String,clientId: null == clientId ? _self.clientId : clientId // ignore: cast_nullable_to_non_nullable
+as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as InvoiceType,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as InvoiceStatus,clientId: null == clientId ? _self.clientId : clientId // ignore: cast_nullable_to_non_nullable
 as String,clientName: null == clientName ? _self.clientName : clientName // ignore: cast_nullable_to_non_nullable
 as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
+as DateTime,dueDate: freezed == dueDate ? _self.dueDate : dueDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
 as List<InvoiceItemModel>,subTotal: null == subTotal ? _self.subTotal : subTotal // ignore: cast_nullable_to_non_nullable
 as double,discount: null == discount ? _self.discount : discount // ignore: cast_nullable_to_non_nullable
 as double,tax: null == tax ? _self.tax : tax // ignore: cast_nullable_to_non_nullable
 as double,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
-as double,
+as double,paidAmount: null == paidAmount ? _self.paidAmount : paidAmount // ignore: cast_nullable_to_non_nullable
+as double,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -163,10 +174,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String invoiceNumber,  String clientId,  String clientName, @TimestampConverter()  DateTime date,  List<InvoiceItemModel> items,  double subTotal,  double discount,  double tax,  double totalAmount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String invoiceNumber,  InvoiceType type,  InvoiceStatus status,  String clientId,  String clientName, @TimestampConverter()  DateTime date, @TimestampConverter()  DateTime? dueDate,  List<InvoiceItemModel> items,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? note)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InvoiceModel() when $default != null:
-return $default(_that.id,_that.invoiceNumber,_that.clientId,_that.clientName,_that.date,_that.items,_that.subTotal,_that.discount,_that.tax,_that.totalAmount);case _:
+return $default(_that.id,_that.invoiceNumber,_that.type,_that.status,_that.clientId,_that.clientName,_that.date,_that.dueDate,_that.items,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.note);case _:
   return orElse();
 
 }
@@ -184,10 +195,10 @@ return $default(_that.id,_that.invoiceNumber,_that.clientId,_that.clientName,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String invoiceNumber,  String clientId,  String clientName, @TimestampConverter()  DateTime date,  List<InvoiceItemModel> items,  double subTotal,  double discount,  double tax,  double totalAmount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String invoiceNumber,  InvoiceType type,  InvoiceStatus status,  String clientId,  String clientName, @TimestampConverter()  DateTime date, @TimestampConverter()  DateTime? dueDate,  List<InvoiceItemModel> items,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? note)  $default,) {final _that = this;
 switch (_that) {
 case _InvoiceModel():
-return $default(_that.id,_that.invoiceNumber,_that.clientId,_that.clientName,_that.date,_that.items,_that.subTotal,_that.discount,_that.tax,_that.totalAmount);case _:
+return $default(_that.id,_that.invoiceNumber,_that.type,_that.status,_that.clientId,_that.clientName,_that.date,_that.dueDate,_that.items,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.note);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +215,10 @@ return $default(_that.id,_that.invoiceNumber,_that.clientId,_that.clientName,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String invoiceNumber,  String clientId,  String clientName, @TimestampConverter()  DateTime date,  List<InvoiceItemModel> items,  double subTotal,  double discount,  double tax,  double totalAmount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String invoiceNumber,  InvoiceType type,  InvoiceStatus status,  String clientId,  String clientName, @TimestampConverter()  DateTime date, @TimestampConverter()  DateTime? dueDate,  List<InvoiceItemModel> items,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? note)?  $default,) {final _that = this;
 switch (_that) {
 case _InvoiceModel() when $default != null:
-return $default(_that.id,_that.invoiceNumber,_that.clientId,_that.clientName,_that.date,_that.items,_that.subTotal,_that.discount,_that.tax,_that.totalAmount);case _:
+return $default(_that.id,_that.invoiceNumber,_that.type,_that.status,_that.clientId,_that.clientName,_that.date,_that.dueDate,_that.items,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.note);case _:
   return null;
 
 }
@@ -219,27 +230,39 @@ return $default(_that.id,_that.invoiceNumber,_that.clientId,_that.clientName,_th
 
 @JsonSerializable(explicitToJson: true)
 class _InvoiceModel extends InvoiceModel {
-  const _InvoiceModel({@JsonKey(includeFromJson: false, includeToJson: false) this.id, required this.invoiceNumber, required this.clientId, required this.clientName, @TimestampConverter() required this.date, required final  List<InvoiceItemModel> items, required this.subTotal, this.discount = 0.0, this.tax = 0.0, required this.totalAmount}): _items = items,super._();
+  const _InvoiceModel({@JsonKey(includeFromJson: false, includeToJson: false) this.id, required this.invoiceNumber, required this.type, this.status = InvoiceStatus.draft, required this.clientId, required this.clientName, @TimestampConverter() required this.date, @TimestampConverter() this.dueDate, required final  List<InvoiceItemModel> items, required this.subTotal, this.discount = 0.0, this.tax = 0.0, required this.totalAmount, this.paidAmount = 0.0, this.note}): _items = items,super._();
   factory _InvoiceModel.fromJson(Map<String, dynamic> json) => _$InvoiceModelFromJson(json);
 
 @override@JsonKey(includeFromJson: false, includeToJson: false) final  String? id;
 @override final  String invoiceNumber;
+// --- حقول التصنيف والحالة الجديدة (ERP) ---
+@override final  InvoiceType type;
+@override@JsonKey() final  InvoiceStatus status;
+// بيانات العميل
 @override final  String clientId;
 @override final  String clientName;
+// التواريخ
 @override@TimestampConverter() final  DateTime date;
-// القائمة التي تسبب المشكلة إذا لم يكن explicitToJson مفعلاً
+@override@TimestampConverter() final  DateTime? dueDate;
+// تاريخ الاستحقاق (قد يكون null)
+// العناصر
  final  List<InvoiceItemModel> _items;
-// القائمة التي تسبب المشكلة إذا لم يكن explicitToJson مفعلاً
+// تاريخ الاستحقاق (قد يكون null)
+// العناصر
 @override List<InvoiceItemModel> get items {
   if (_items is EqualUnmodifiableListView) return _items;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_items);
 }
 
+// الحسابات المالية
 @override final  double subTotal;
 @override@JsonKey() final  double discount;
 @override@JsonKey() final  double tax;
 @override final  double totalAmount;
+// المدفوعات والملاحظات
+@override@JsonKey() final  double paidAmount;
+@override final  String? note;
 
 /// Create a copy of InvoiceModel
 /// with the given fields replaced by the non-null parameter values.
@@ -254,16 +277,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvoiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.invoiceNumber, invoiceNumber) || other.invoiceNumber == invoiceNumber)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.clientName, clientName) || other.clientName == clientName)&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvoiceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.invoiceNumber, invoiceNumber) || other.invoiceNumber == invoiceNumber)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.clientId, clientId) || other.clientId == clientId)&&(identical(other.clientName, clientName) || other.clientName == clientName)&&(identical(other.date, date) || other.date == date)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.note, note) || other.note == note));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,invoiceNumber,clientId,clientName,date,const DeepCollectionEquality().hash(_items),subTotal,discount,tax,totalAmount);
+int get hashCode => Object.hash(runtimeType,id,invoiceNumber,type,status,clientId,clientName,date,dueDate,const DeepCollectionEquality().hash(_items),subTotal,discount,tax,totalAmount,paidAmount,note);
 
 @override
 String toString() {
-  return 'InvoiceModel(id: $id, invoiceNumber: $invoiceNumber, clientId: $clientId, clientName: $clientName, date: $date, items: $items, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount)';
+  return 'InvoiceModel(id: $id, invoiceNumber: $invoiceNumber, type: $type, status: $status, clientId: $clientId, clientName: $clientName, date: $date, dueDate: $dueDate, items: $items, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount, paidAmount: $paidAmount, note: $note)';
 }
 
 
@@ -274,7 +297,7 @@ abstract mixin class _$InvoiceModelCopyWith<$Res> implements $InvoiceModelCopyWi
   factory _$InvoiceModelCopyWith(_InvoiceModel value, $Res Function(_InvoiceModel) _then) = __$InvoiceModelCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeFromJson: false, includeToJson: false) String? id, String invoiceNumber, String clientId, String clientName,@TimestampConverter() DateTime date, List<InvoiceItemModel> items, double subTotal, double discount, double tax, double totalAmount
+@JsonKey(includeFromJson: false, includeToJson: false) String? id, String invoiceNumber, InvoiceType type, InvoiceStatus status, String clientId, String clientName,@TimestampConverter() DateTime date,@TimestampConverter() DateTime? dueDate, List<InvoiceItemModel> items, double subTotal, double discount, double tax, double totalAmount, double paidAmount, String? note
 });
 
 
@@ -291,19 +314,24 @@ class __$InvoiceModelCopyWithImpl<$Res>
 
 /// Create a copy of InvoiceModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? invoiceNumber = null,Object? clientId = null,Object? clientName = null,Object? date = null,Object? items = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? invoiceNumber = null,Object? type = null,Object? status = null,Object? clientId = null,Object? clientName = null,Object? date = null,Object? dueDate = freezed,Object? items = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,Object? paidAmount = null,Object? note = freezed,}) {
   return _then(_InvoiceModel(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,invoiceNumber: null == invoiceNumber ? _self.invoiceNumber : invoiceNumber // ignore: cast_nullable_to_non_nullable
-as String,clientId: null == clientId ? _self.clientId : clientId // ignore: cast_nullable_to_non_nullable
+as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as InvoiceType,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as InvoiceStatus,clientId: null == clientId ? _self.clientId : clientId // ignore: cast_nullable_to_non_nullable
 as String,clientName: null == clientName ? _self.clientName : clientName // ignore: cast_nullable_to_non_nullable
 as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
+as DateTime,dueDate: freezed == dueDate ? _self.dueDate : dueDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
 as List<InvoiceItemModel>,subTotal: null == subTotal ? _self.subTotal : subTotal // ignore: cast_nullable_to_non_nullable
 as double,discount: null == discount ? _self.discount : discount // ignore: cast_nullable_to_non_nullable
 as double,tax: null == tax ? _self.tax : tax // ignore: cast_nullable_to_non_nullable
 as double,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
-as double,
+as double,paidAmount: null == paidAmount ? _self.paidAmount : paidAmount // ignore: cast_nullable_to_non_nullable
+as double,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

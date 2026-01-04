@@ -24,6 +24,29 @@ class InvoiceItemEntity extends Equatable {
     required this.total,
   });
 
+  /// إنشاء نسخة معدلة من الكائن الحالي
+  InvoiceItemEntity copyWith({
+    String? productId,
+    String? productName,
+    String? unitId,
+    String? unitName,
+    double? conversionFactor,
+    int? quantity,
+    double? price,
+    double? total,
+  }) {
+    return InvoiceItemEntity(
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      unitId: unitId ?? this.unitId,
+      unitName: unitName ?? this.unitName,
+      conversionFactor: conversionFactor ?? this.conversionFactor,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+      total: total ?? this.total,
+    );
+  }
+
   @override
   List<Object?> get props => [
     productId, productName, unitId, unitName, conversionFactor, quantity, price, total

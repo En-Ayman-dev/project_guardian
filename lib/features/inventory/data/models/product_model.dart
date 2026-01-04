@@ -13,14 +13,16 @@ part 'product_model.g.dart';
 abstract class ProductModel with _$ProductModel {
   const ProductModel._();
 
-  // --- الحل الجذري هنا: إضافة هذا السطر ---
   // هذا يجبر Freezed على توليد كود يحول القوائم المتداخلة إلى JSON بشكل صحيح
   @JsonSerializable(explicitToJson: true) 
-  // ------------------------------------
   const factory ProductModel({
     @JsonKey(includeFromJson: false, includeToJson: false) String? id,
     required String name,
     String? description,
+    
+    // --- التعديل 1: إضافة حقل الباركود ---
+    String? barcode,
+    
     required String categoryId,
     required String categoryName,
     
@@ -46,6 +48,7 @@ abstract class ProductModel with _$ProductModel {
       id: id ?? '',
       name: name,
       description: description,
+      barcode: barcode, // --- التعديل 2: نقل الباركود للكيان ---
       categoryId: categoryId,
       categoryName: categoryName,
       units: units.map((u) => u.toEntity()).toList(),
@@ -60,6 +63,7 @@ abstract class ProductModel with _$ProductModel {
       id: entity.id,
       name: entity.name,
       description: entity.description,
+      barcode: entity.barcode, // --- التعديل 3: نقل الباركود للمودل ---
       categoryId: entity.categoryId,
       categoryName: entity.categoryName,
       units: entity.units.map((u) => ProductUnitModel.fromEntity(u)).toList(),

@@ -13,23 +13,35 @@ part 'invoice_model.g.dart';
 abstract class InvoiceModel with _$InvoiceModel {
   const InvoiceModel._();
 
-  // --- هام جداً: إضافة هذا السطر ---
   @JsonSerializable(explicitToJson: true)
-  // --------------------------------
   const factory InvoiceModel({
     @JsonKey(includeFromJson: false, includeToJson: false) String? id,
     required String invoiceNumber,
+    
+    // --- حقول التصنيف والحالة الجديدة (ERP) ---
+    required InvoiceType type,
+    @Default(InvoiceStatus.draft) InvoiceStatus status,
+    
+    // بيانات العميل
     required String clientId,
     required String clientName,
-    @TimestampConverter() required DateTime date,
     
-    // القائمة التي تسبب المشكلة إذا لم يكن explicitToJson مفعلاً
+    // التواريخ
+    @TimestampConverter() required DateTime date,
+    @TimestampConverter() DateTime? dueDate, // تاريخ الاستحقاق (قد يكون null)
+
+    // العناصر
     required List<InvoiceItemModel> items, 
     
+    // الحسابات المالية
     required double subTotal,
     @Default(0.0) double discount,
     @Default(0.0) double tax,
     required double totalAmount,
+    
+    // المدفوعات والملاحظات
+    @Default(0.0) double paidAmount,
+    String? note,
   }) = _InvoiceModel;
 
   factory InvoiceModel.fromJson(Map<String, dynamic> json) =>
@@ -44,14 +56,19 @@ abstract class InvoiceModel with _$InvoiceModel {
     return InvoiceEntity(
       id: id ?? '',
       invoiceNumber: invoiceNumber,
+      type: type,
+      status: status,
       clientId: clientId,
       clientName: clientName,
       date: date,
+      dueDate: dueDate,
       items: items.map((e) => e.toEntity()).toList(),
       subTotal: subTotal,
       discount: discount,
       tax: tax,
       totalAmount: totalAmount,
+      paidAmount: paidAmount,
+      note: note,
     );
   }
 
@@ -59,14 +76,19 @@ abstract class InvoiceModel with _$InvoiceModel {
     return InvoiceModel(
       id: entity.id,
       invoiceNumber: entity.invoiceNumber,
+      type: entity.type,
+      status: entity.status,
       clientId: entity.clientId,
       clientName: entity.clientName,
       date: entity.date,
+      dueDate: entity.dueDate,
       items: entity.items.map((e) => InvoiceItemModel.fromEntity(e)).toList(),
       subTotal: entity.subTotal,
       discount: entity.discount,
       tax: entity.tax,
       totalAmount: entity.totalAmount,
+      paidAmount: entity.paidAmount,
+      note: entity.note,
     );
   }
 }

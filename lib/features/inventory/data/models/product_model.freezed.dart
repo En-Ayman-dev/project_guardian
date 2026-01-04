@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProductModel {
 
-@JsonKey(includeFromJson: false, includeToJson: false) String? get id; String get name; String? get description; String get categoryId; String get categoryName;// القائمة الجديدة
+@JsonKey(includeFromJson: false, includeToJson: false) String? get id; String get name; String? get description;// --- التعديل 1: إضافة حقل الباركود ---
+ String? get barcode; String get categoryId; String get categoryName;// القائمة الجديدة
  List<ProductUnitModel> get units; double get stock; int get minStockAlert;@TimestampConverter() DateTime get createdAt;
 /// Create a copy of ProductModel
 /// with the given fields replaced by the non-null parameter values.
@@ -29,16 +30,16 @@ $ProductModelCopyWith<ProductModel> get copyWith => _$ProductModelCopyWithImpl<P
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.categoryName, categoryName) || other.categoryName == categoryName)&&const DeepCollectionEquality().equals(other.units, units)&&(identical(other.stock, stock) || other.stock == stock)&&(identical(other.minStockAlert, minStockAlert) || other.minStockAlert == minStockAlert)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.barcode, barcode) || other.barcode == barcode)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.categoryName, categoryName) || other.categoryName == categoryName)&&const DeepCollectionEquality().equals(other.units, units)&&(identical(other.stock, stock) || other.stock == stock)&&(identical(other.minStockAlert, minStockAlert) || other.minStockAlert == minStockAlert)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,categoryId,categoryName,const DeepCollectionEquality().hash(units),stock,minStockAlert,createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,description,barcode,categoryId,categoryName,const DeepCollectionEquality().hash(units),stock,minStockAlert,createdAt);
 
 @override
 String toString() {
-  return 'ProductModel(id: $id, name: $name, description: $description, categoryId: $categoryId, categoryName: $categoryName, units: $units, stock: $stock, minStockAlert: $minStockAlert, createdAt: $createdAt)';
+  return 'ProductModel(id: $id, name: $name, description: $description, barcode: $barcode, categoryId: $categoryId, categoryName: $categoryName, units: $units, stock: $stock, minStockAlert: $minStockAlert, createdAt: $createdAt)';
 }
 
 
@@ -49,7 +50,7 @@ abstract mixin class $ProductModelCopyWith<$Res>  {
   factory $ProductModelCopyWith(ProductModel value, $Res Function(ProductModel) _then) = _$ProductModelCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeFromJson: false, includeToJson: false) String? id, String name, String? description, String categoryId, String categoryName, List<ProductUnitModel> units, double stock, int minStockAlert,@TimestampConverter() DateTime createdAt
+@JsonKey(includeFromJson: false, includeToJson: false) String? id, String name, String? description, String? barcode, String categoryId, String categoryName, List<ProductUnitModel> units, double stock, int minStockAlert,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -66,11 +67,12 @@ class _$ProductModelCopyWithImpl<$Res>
 
 /// Create a copy of ProductModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = null,Object? description = freezed,Object? categoryId = null,Object? categoryName = null,Object? units = null,Object? stock = null,Object? minStockAlert = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = null,Object? description = freezed,Object? barcode = freezed,Object? categoryId = null,Object? categoryName = null,Object? units = null,Object? stock = null,Object? minStockAlert = null,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,barcode: freezed == barcode ? _self.barcode : barcode // ignore: cast_nullable_to_non_nullable
 as String?,categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as String,categoryName: null == categoryName ? _self.categoryName : categoryName // ignore: cast_nullable_to_non_nullable
 as String,units: null == units ? _self.units : units // ignore: cast_nullable_to_non_nullable
@@ -162,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String name,  String? description,  String categoryId,  String categoryName,  List<ProductUnitModel> units,  double stock,  int minStockAlert, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String name,  String? description,  String? barcode,  String categoryId,  String categoryName,  List<ProductUnitModel> units,  double stock,  int minStockAlert, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProductModel() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.categoryId,_that.categoryName,_that.units,_that.stock,_that.minStockAlert,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.description,_that.barcode,_that.categoryId,_that.categoryName,_that.units,_that.stock,_that.minStockAlert,_that.createdAt);case _:
   return orElse();
 
 }
@@ -183,10 +185,10 @@ return $default(_that.id,_that.name,_that.description,_that.categoryId,_that.cat
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String name,  String? description,  String categoryId,  String categoryName,  List<ProductUnitModel> units,  double stock,  int minStockAlert, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String name,  String? description,  String? barcode,  String categoryId,  String categoryName,  List<ProductUnitModel> units,  double stock,  int minStockAlert, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _ProductModel():
-return $default(_that.id,_that.name,_that.description,_that.categoryId,_that.categoryName,_that.units,_that.stock,_that.minStockAlert,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.description,_that.barcode,_that.categoryId,_that.categoryName,_that.units,_that.stock,_that.minStockAlert,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +205,10 @@ return $default(_that.id,_that.name,_that.description,_that.categoryId,_that.cat
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String name,  String? description,  String categoryId,  String categoryName,  List<ProductUnitModel> units,  double stock,  int minStockAlert, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeFromJson: false, includeToJson: false)  String? id,  String name,  String? description,  String? barcode,  String categoryId,  String categoryName,  List<ProductUnitModel> units,  double stock,  int minStockAlert, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ProductModel() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.categoryId,_that.categoryName,_that.units,_that.stock,_that.minStockAlert,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.description,_that.barcode,_that.categoryId,_that.categoryName,_that.units,_that.stock,_that.minStockAlert,_that.createdAt);case _:
   return null;
 
 }
@@ -218,12 +220,14 @@ return $default(_that.id,_that.name,_that.description,_that.categoryId,_that.cat
 
 @JsonSerializable(explicitToJson: true)
 class _ProductModel extends ProductModel {
-  const _ProductModel({@JsonKey(includeFromJson: false, includeToJson: false) this.id, required this.name, this.description, required this.categoryId, required this.categoryName, required final  List<ProductUnitModel> units, this.stock = 0.0, this.minStockAlert = 5, @TimestampConverter() required this.createdAt}): _units = units,super._();
+  const _ProductModel({@JsonKey(includeFromJson: false, includeToJson: false) this.id, required this.name, this.description, this.barcode, required this.categoryId, required this.categoryName, required final  List<ProductUnitModel> units, this.stock = 0.0, this.minStockAlert = 5, @TimestampConverter() required this.createdAt}): _units = units,super._();
   factory _ProductModel.fromJson(Map<String, dynamic> json) => _$ProductModelFromJson(json);
 
 @override@JsonKey(includeFromJson: false, includeToJson: false) final  String? id;
 @override final  String name;
 @override final  String? description;
+// --- التعديل 1: إضافة حقل الباركود ---
+@override final  String? barcode;
 @override final  String categoryId;
 @override final  String categoryName;
 // القائمة الجديدة
@@ -252,16 +256,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.categoryName, categoryName) || other.categoryName == categoryName)&&const DeepCollectionEquality().equals(other._units, _units)&&(identical(other.stock, stock) || other.stock == stock)&&(identical(other.minStockAlert, minStockAlert) || other.minStockAlert == minStockAlert)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.barcode, barcode) || other.barcode == barcode)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.categoryName, categoryName) || other.categoryName == categoryName)&&const DeepCollectionEquality().equals(other._units, _units)&&(identical(other.stock, stock) || other.stock == stock)&&(identical(other.minStockAlert, minStockAlert) || other.minStockAlert == minStockAlert)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,categoryId,categoryName,const DeepCollectionEquality().hash(_units),stock,minStockAlert,createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,description,barcode,categoryId,categoryName,const DeepCollectionEquality().hash(_units),stock,minStockAlert,createdAt);
 
 @override
 String toString() {
-  return 'ProductModel(id: $id, name: $name, description: $description, categoryId: $categoryId, categoryName: $categoryName, units: $units, stock: $stock, minStockAlert: $minStockAlert, createdAt: $createdAt)';
+  return 'ProductModel(id: $id, name: $name, description: $description, barcode: $barcode, categoryId: $categoryId, categoryName: $categoryName, units: $units, stock: $stock, minStockAlert: $minStockAlert, createdAt: $createdAt)';
 }
 
 
@@ -272,7 +276,7 @@ abstract mixin class _$ProductModelCopyWith<$Res> implements $ProductModelCopyWi
   factory _$ProductModelCopyWith(_ProductModel value, $Res Function(_ProductModel) _then) = __$ProductModelCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeFromJson: false, includeToJson: false) String? id, String name, String? description, String categoryId, String categoryName, List<ProductUnitModel> units, double stock, int minStockAlert,@TimestampConverter() DateTime createdAt
+@JsonKey(includeFromJson: false, includeToJson: false) String? id, String name, String? description, String? barcode, String categoryId, String categoryName, List<ProductUnitModel> units, double stock, int minStockAlert,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -289,11 +293,12 @@ class __$ProductModelCopyWithImpl<$Res>
 
 /// Create a copy of ProductModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = null,Object? description = freezed,Object? categoryId = null,Object? categoryName = null,Object? units = null,Object? stock = null,Object? minStockAlert = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = null,Object? description = freezed,Object? barcode = freezed,Object? categoryId = null,Object? categoryName = null,Object? units = null,Object? stock = null,Object? minStockAlert = null,Object? createdAt = null,}) {
   return _then(_ProductModel(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,barcode: freezed == barcode ? _self.barcode : barcode // ignore: cast_nullable_to_non_nullable
 as String?,categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
 as String,categoryName: null == categoryName ? _self.categoryName : categoryName // ignore: cast_nullable_to_non_nullable
 as String,units: null == units ? _self._units : units // ignore: cast_nullable_to_non_nullable

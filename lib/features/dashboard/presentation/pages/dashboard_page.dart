@@ -13,14 +13,11 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        // نحقن كوبيت الداشبورد
         BlocProvider(create: (context) => getIt<DashboardCubit>()..loadStats()),
       ],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          state.whenOrNull(
-            unauthenticated: () => context.go('/login'),
-          );
+          state.whenOrNull(unauthenticated: () => context.go('/login'));
         },
         child: const _DashboardView(),
       ),
@@ -57,14 +54,14 @@ class _DashboardView extends StatelessWidget {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               // 1. Stats Grid
               BlocBuilder<DashboardCubit, DashboardState>(
                 builder: (context, state) {
                   if (state.isLoading) {
                     return const Center(child: LinearProgressIndicator());
                   }
-                  
+
                   return GridView.count(
                     crossAxisCount: 2,
                     shrinkWrap: true,
@@ -123,12 +120,35 @@ class _DashboardView extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.white,
+                        elevation: 4,
                       ),
                       onPressed: () {
-                         context.push('/pos').then((_) {
-                           // تحديث الإحصائيات عند العودة
-                           if(context.mounted) context.read<DashboardCubit>().loadStats();
-                         });
+                        context.push('/pos').then((_) {
+                          if (context.mounted)
+                            context.read<DashboardCubit>().loadStats();
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16), // مسافة بين الزرين
+                  // --- الزر الجديد: سجل الفواتير ---
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.history, size: 28),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text("Invoices"),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Theme.of(context).primaryColor,
+                        elevation: 2,
+                        side: BorderSide(
+                          color: Theme.of(context).primaryColor,
+                        ), // إطار ملون
+                      ),
+                      onPressed: () {
+                        context.push('/invoices');
                       },
                     ),
                   ),
@@ -163,7 +183,9 @@ class _StatCard extends StatelessWidget {
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isAlert ? const BorderSide(color: Colors.red, width: 2) : BorderSide.none,
+        side: isAlert
+            ? const BorderSide(color: Colors.red, width: 2)
+            : BorderSide.none,
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -175,7 +197,8 @@ class _StatCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Icon(icon, color: color, size: 30),
-                if (isAlert) const Icon(Icons.error, color: Colors.red, size: 20),
+                if (isAlert)
+                  const Icon(Icons.error, color: Colors.red, size: 20),
               ],
             ),
             Column(
@@ -202,14 +225,13 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// --- Drawer المحدث بالكامل ---
 class _DashboardDrawer extends StatelessWidget {
   const _DashboardDrawer();
 
   @override
   Widget build(BuildContext context) {
-    final user = context.select((AuthBloc bloc) => 
-      bloc.state.mapOrNull(authenticated: (s) => s.user)
+    final user = context.select(
+      (AuthBloc bloc) => bloc.state.mapOrNull(authenticated: (s) => s.user),
     );
 
     return NavigationDrawer(
@@ -226,16 +248,19 @@ class _DashboardDrawer extends StatelessWidget {
           ),
           decoration: BoxDecoration(color: Theme.of(context).primaryColor),
         ),
-        
+
         const Padding(
           padding: EdgeInsets.fromLTRB(28, 16, 16, 10),
-          child: Text('Main', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          child: Text(
+            'Main',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+          ),
         ),
-        
+
         ListTile(
           leading: const Icon(Icons.dashboard),
           title: const Text('Dashboard'),
-          onTap: () => Navigator.pop(context), // نحن هنا بالفعل
+          onTap: () => Navigator.pop(context),
         ),
         ListTile(
           leading: const Icon(Icons.point_of_sale),
@@ -246,9 +271,23 @@ class _DashboardDrawer extends StatelessWidget {
           },
         ),
 
+        // --- الرابط الجديد في القائمة ---
+        ListTile(
+          leading: const Icon(Icons.receipt_long), // أيقونة الفواتير
+          title: const Text('Invoices History'),
+          onTap: () {
+            Navigator.pop(context);
+            context.push('/invoices'); // الذهاب للصفحة الجديدة
+          },
+        ),
+
+        // ------------------------------
         const Padding(
           padding: EdgeInsets.fromLTRB(28, 16, 16, 10),
-          child: Text('Inventory', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          child: Text(
+            'Inventory',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+          ),
         ),
 
         ListTile(
@@ -270,7 +309,10 @@ class _DashboardDrawer extends StatelessWidget {
 
         const Padding(
           padding: EdgeInsets.fromLTRB(28, 16, 16, 10),
-          child: Text('People', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          child: Text(
+            'People',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+          ),
         ),
 
         ListTile(
