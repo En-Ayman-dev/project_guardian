@@ -10,7 +10,15 @@ class GetInvoicesUseCase {
 
   GetInvoicesUseCase(this._repository);
 
-  Future<Either<Failure, List<InvoiceEntity>>> call() {
-    return _repository.getInvoices();
+  Future<Either<Failure, List<InvoiceEntity>>> call({
+    required int limit,
+    InvoiceEntity? startAfter,
+    InvoiceType? type, // [NEW]
+  }) {
+    return _repository.getInvoices(
+      limit: limit,
+      startAfter: startAfter,
+      type: type, // [NEW]
+    );
   }
 }

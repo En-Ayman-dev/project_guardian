@@ -91,6 +91,8 @@ import '../../features/sales/domain/usecases/get_invoice_by_number_usecase.dart'
     as _i878;
 import '../../features/sales/domain/usecases/get_invoices_usecase.dart'
     as _i163;
+import '../../features/sales/domain/usecases/search_invoices_usecase.dart'
+    as _i781;
 import '../../features/sales/domain/usecases/update_invoice_usecase.dart'
     as _i1014;
 import '../../features/sales/presentation/manager/invoices_list_cubit.dart'
@@ -245,12 +247,16 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i163.GetInvoicesUseCase>(
       () => _i163.GetInvoicesUseCase(gh<_i434.SalesRepository>()),
     );
+    gh.lazySingleton<_i781.SearchInvoicesUseCase>(
+      () => _i781.SearchInvoicesUseCase(gh<_i434.SalesRepository>()),
+    );
     gh.lazySingleton<_i1014.UpdateInvoiceUseCase>(
       () => _i1014.UpdateInvoiceUseCase(gh<_i434.SalesRepository>()),
     );
     gh.factory<_i1069.InvoicesListCubit>(
       () => _i1069.InvoicesListCubit(
         gh<_i163.GetInvoicesUseCase>(),
+        gh<_i781.SearchInvoicesUseCase>(),
         gh<_i661.DeleteInvoiceUseCase>(),
       ),
     );

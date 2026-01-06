@@ -3,18 +3,20 @@ import '../../../../core/errors/failures.dart';
 import '../entities/invoice_entity.dart';
 
 abstract class SalesRepository {
-  // جلب كل الفواتير
-  Future<Either<Failure, List<InvoiceEntity>>> getInvoices();
-  
-  // [NEW] البحث عن فاتورة برقمها (للمرتجعات)
-  Future<Either<Failure, InvoiceEntity>> getInvoiceByNumber(String invoiceNumber);
-  
-  // إضافة فاتورة جديدة
+  // [NEW] البحث الشامل في السيرفر (Server-side Search)
+  Future<Either<Failure, List<InvoiceEntity>>> searchInvoices(String query);
+
+  // البحث عن فاتورة برقمها (للمرتجعات - دقيق)
+  Future<Either<Failure, InvoiceEntity>> getInvoiceByNumber(
+    String invoiceNumber,
+  );
+
   Future<Either<Failure, void>> addInvoice(InvoiceEntity invoice);
-
-  // حذف فاتورة
   Future<Either<Failure, void>> deleteInvoice(InvoiceEntity invoice);
-
-  // تعديل فاتورة
   Future<Either<Failure, void>> updateInvoice(InvoiceEntity invoice);
+  Future<Either<Failure, List<InvoiceEntity>>> getInvoices({
+    required int limit,
+    InvoiceEntity? startAfter,
+    InvoiceType? type, // [NEW]
+  });
 }

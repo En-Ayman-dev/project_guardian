@@ -5,8 +5,15 @@ import '../../domain/entities/invoice_entity.dart';
 import '../models/invoice_model.dart';
 
 abstract class SalesRemoteDataSource {
-  Future<List<InvoiceModel>> getInvoices();
-  // [NEW] تعريف الدالة في الواجهة
+  // [MODIFIED] دالة الجلب الآن تدعم التقسيم (Pagination)
+  Future<List<InvoiceModel>> getInvoices({
+    required int limit,
+    InvoiceModel? startAfter, String? invoiceType,
+  });
+
+  // [NEW] دالة بحث خاصة بالسيرفر
+  Future<List<InvoiceModel>> searchInvoices(String query);
+
   Future<InvoiceModel> getInvoiceByNumber(String invoiceNumber);
   Future<void> addInvoice(InvoiceModel invoice);
   Future<void> deleteInvoice(InvoiceModel invoice);
@@ -25,13 +32,31 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   static const String _countersCollection = 'settings';
   static const String _countersDoc = 'counters';
 
+  // في الدالة getInvoices، نضيف معامل type
   @override
-  Future<List<InvoiceModel>> getInvoices() async {
+  Future<List<InvoiceModel>> getInvoices({
+    required int limit,
+    InvoiceModel? startAfter,
+    String? invoiceType, // [NEW] إضافة نوع الفاتورة
+  }) async {
     try {
-      final snapshot = await _firestore
+      var query = _firestore
           .collection(_invoicesCollection)
           .orderBy('date', descending: true)
-          .get();
+          .orderBy(FieldPath.documentId, descending: true)
+          .limit(limit);
+
+      // [NEW] إذا تم تحديد نوع، نضيف شرط الفلترة
+      if (invoiceType != null) {
+        query = query.where('type', isEqualTo: invoiceType);
+      }
+
+      if (startAfter != null) {
+        final values = [Timestamp.fromDate(startAfter.date), startAfter.id];
+        query = query.startAfter(values);
+      }
+
+      final snapshot = await query.get();
       return snapshot.docs
           .map((doc) => InvoiceModel.fromFirestore(doc))
           .toList();
@@ -40,14 +65,59 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
     }
   }
 
-  // [NEW] تنفيذ دالة البحث
+  @override
+  Future<List<InvoiceModel>> searchInvoices(String query) async {
+    try {
+      // بحث برقم الفاتورة (مطابقة تامة عادةً للأرقام)
+      final numberQuery = _firestore
+          .collection(_invoicesCollection)
+          .where('invoiceNumber', isEqualTo: query)
+          .get();
+
+      // بحث باسم العميل (بحث بالبادئة Prefix Search)
+      // ملاحظة: Firestore حساس لحالة الأحرف، هذا البحث يعمل إذا كان الاسم مطابقاً في البداية
+      final nameQuery = _firestore
+          .collection(_invoicesCollection)
+          .where('clientName', isGreaterThanOrEqualTo: query)
+          .where(
+            'clientName',
+            isLessThan: '$query\uf8ff',
+          ) // \uf8ff هو آخر حرف في اليونيكود
+          .get();
+
+      // تنفيذ الطلبين بالتوازي
+      final results = await Future.wait([numberQuery, nameQuery]);
+
+      // دمج النتائج
+      final allDocs = [...results[0].docs, ...results[1].docs];
+
+      // إزالة التكرار (Deduplication) باستخدام Map أو Set
+      final uniqueMap = <String, InvoiceModel>{};
+      for (var doc in allDocs) {
+        if (!uniqueMap.containsKey(doc.id)) {
+          uniqueMap[doc.id] = InvoiceModel.fromFirestore(doc);
+        }
+      }
+
+      // إعادة ترتيب النتائج حسب التاريخ (الأحدث أولاً)
+      final models = uniqueMap.values.toList();
+      models.sort((a, b) => b.date.compareTo(a.date));
+
+      return models;
+    } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
+
+  // --- بقية الدوال كما هي دون تغيير ---
+
   @override
   Future<InvoiceModel> getInvoiceByNumber(String invoiceNumber) async {
     try {
       final snapshot = await _firestore
           .collection(_invoicesCollection)
           .where('invoiceNumber', isEqualTo: invoiceNumber)
-          .limit(1) // نكتفي بأول نتيجة لأن الرقم فريد
+          .limit(1)
           .get();
 
       if (snapshot.docs.isEmpty) {
@@ -56,7 +126,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
 
       return InvoiceModel.fromFirestore(snapshot.docs.first);
     } catch (e) {
-      // إذا كان الخطأ هو ServerFailure (الذي رميناه نحن)، نعيد رميه كما هو
       if (e is ServerFailure) rethrow;
       throw ServerFailure(e.toString());
     }
@@ -66,21 +135,16 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   Future<void> addInvoice(InvoiceModel invoice) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // --- PHASE 1: READ EVERYTHING FIRST ---
-
-        // 1. Read Counter
         final counterRef = _firestore
             .collection(_countersCollection)
             .doc(_countersDoc);
         final counterSnapshot = await transaction.get(counterRef);
 
-        // 2. Read Products
         final productSnapshots = await _readProducts(
           transaction,
           invoice.items,
         );
 
-        // 3. Read Client
         DocumentSnapshot? clientSnapshot;
         if (invoice.clientId.isNotEmpty) {
           final clientRef = _firestore
@@ -89,9 +153,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           clientSnapshot = await transaction.get(clientRef);
         }
 
-        // --- PHASE 2: CALCULATE ---
-
-        // A. Prepare Invoice Number
         int nextNumber = 1;
         String fieldName = _getCounterFieldName(invoice.type);
 
@@ -105,14 +166,12 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           invoiceNumber: nextNumber.toString(),
         );
 
-        // B. Calculate Stock Impact
         final stockUpdates = _calculateStockUpdates(
           invoice: invoiceWithNumber,
           productSnapshots: productSnapshots,
           isRevert: false,
         );
 
-        // C. Calculate Client Balance Impact
         double? newClientBalance;
         if (clientSnapshot != null && clientSnapshot.exists) {
           if (invoice.paymentType == InvoicePaymentType.credit) {
@@ -121,7 +180,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
                         as num?)
                     ?.toDouble() ??
                 0.0;
-
             newClientBalance = _calculateClientBalance(
               currentBalance: currentBal,
               invoice: invoiceWithNumber,
@@ -130,28 +188,22 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           }
         }
 
-        // --- PHASE 3: WRITE ---
-
-        // 1. Update Counter
         if (counterSnapshot.exists) {
           transaction.update(counterRef, {fieldName: nextNumber});
         } else {
           transaction.set(counterRef, {fieldName: 1});
         }
 
-        // 2. Update Products
         for (final update in stockUpdates.entries) {
           transaction.update(update.key, {'stock': update.value});
         }
 
-        // 3. Update Client Balance
         if (newClientBalance != null && clientSnapshot != null) {
           transaction.update(clientSnapshot.reference, {
             'balance': newClientBalance,
           });
         }
 
-        // 4. Save Invoice
         final invoiceRef = _firestore
             .collection(_invoicesCollection)
             .doc(invoiceWithNumber.id);
@@ -166,7 +218,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   Future<void> deleteInvoice(InvoiceModel invoice) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // --- PHASE 1: READ ---
         final productSnapshots = await _readProducts(
           transaction,
           invoice.items,
@@ -180,7 +231,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           clientSnapshot = await transaction.get(clientRef);
         }
 
-        // --- PHASE 2: CALCULATE ---
         final stockUpdates = _calculateStockUpdates(
           invoice: invoice,
           productSnapshots: productSnapshots,
@@ -195,7 +245,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
                         as num?)
                     ?.toDouble() ??
                 0.0;
-
             newClientBalance = _calculateClientBalance(
               currentBalance: currentBal,
               invoice: invoice,
@@ -204,7 +253,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           }
         }
 
-        // --- PHASE 3: WRITE ---
         for (final update in stockUpdates.entries) {
           transaction.update(update.key, {'stock': update.value});
         }
@@ -229,7 +277,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   Future<void> updateInvoice(InvoiceModel newInvoice) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // --- PHASE 1: READ ---
         final invoiceRef = _firestore
             .collection(_invoicesCollection)
             .doc(newInvoice.id);
@@ -251,7 +298,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           clientSnapshot = await transaction.get(clientRef);
         }
 
-        // --- PHASE 2: CALCULATE ---
         final tempStock = <String, double>{};
 
         double getCurrentStock(String pid) {
@@ -264,7 +310,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
               : 0.0;
         }
 
-        // Revert Old
         for (final item in oldInvoice.items) {
           final current = getCurrentStock(item.productId);
           final change = _calculateSingleItemChange(
@@ -275,7 +320,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           tempStock[item.productId] = current + change;
         }
 
-        // Apply New
         for (final item in newInvoice.items) {
           final current = getCurrentStock(item.productId);
           final change = _calculateSingleItemChange(
@@ -283,7 +327,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
             newInvoice.type,
             isRevert: false,
           );
-
           if (change < 0 && (current + change) < 0) {
             throw ServerFailure(
               "Insufficient stock for product: ${item.productName}",
@@ -292,7 +335,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           tempStock[item.productId] = current + change;
         }
 
-        // Client Balance
         double? finalClientBalance;
         if (clientSnapshot != null && clientSnapshot.exists) {
           double currentBalance =
@@ -300,7 +342,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
                       as num?)
                   ?.toDouble() ??
               0.0;
-
           if (oldInvoice.paymentType == InvoicePaymentType.credit) {
             currentBalance = _calculateNewBalanceFromBase(
               currentBalance,
@@ -308,7 +349,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
               isRevert: true,
             );
           }
-
           if (newInvoice.paymentType == InvoicePaymentType.credit) {
             finalClientBalance = _calculateNewBalanceFromBase(
               currentBalance,
@@ -320,7 +360,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           }
         }
 
-        // --- PHASE 3: WRITE ---
         for (final entry in tempStock.entries) {
           final snap = productSnapshots[entry.key];
           if (snap != null && snap.exists) {
@@ -341,7 +380,7 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
     }
   }
 
-  // --- Helper Methods ---
+  // --- Helper Methods (Internal) ---
 
   String _getCounterFieldName(InvoiceType type) {
     switch (type) {
@@ -362,7 +401,6 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   ) async {
     final snapshots = <String, DocumentSnapshot>{};
     final uniqueIds = items.map((e) => e.productId).toSet();
-
     for (final pid in uniqueIds) {
       final ref = _firestore.collection(_productsCollection).doc(pid);
       snapshots[pid] = await t.get(ref);
@@ -376,15 +414,12 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
     required bool isRevert,
   }) {
     final updates = <DocumentReference, double>{};
-
     for (final item in invoice.items) {
       final snapshot = productSnapshots[item.productId];
-
       if (snapshot == null || !snapshot.exists) {
         if (isRevert) continue;
         throw ServerFailure("Product ${item.productName} not found!");
       }
-
       final currentStock =
           ((snapshot.data() as Map<String, dynamic>)['stock'] as num?)
               ?.toDouble() ??
@@ -394,15 +429,12 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
         invoice.type,
         isRevert: isRevert,
       );
-
       final newStock = currentStock + change;
-
       if (newStock < 0) {
         throw ServerFailure(
           "Insufficient stock for product: ${item.productName}. Available: $currentStock",
         );
       }
-
       updates[snapshot.reference] = newStock;
     }
     return updates;
@@ -414,12 +446,9 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
     required bool isRevert,
   }) {
     final qty = item.quantity * item.conversionFactor;
-
     bool isStockOut =
         (type == InvoiceType.sales || type == InvoiceType.purchaseReturn);
-
     if (isRevert) isStockOut = !isStockOut;
-
     return isStockOut ? -qty : qty;
   }
 
@@ -442,9 +471,7 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
   }) {
     final remaining = invoice.totalAmount - invoice.paidAmount;
     if (remaining == 0) return baseBalance;
-
     double impact = remaining;
-
     if (invoice.type == InvoiceType.sales) {
       impact = remaining;
     } else if (invoice.type == InvoiceType.salesReturn) {
@@ -454,9 +481,7 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
     } else if (invoice.type == InvoiceType.purchaseReturn) {
       impact = remaining;
     }
-
     if (isRevert) impact = -impact;
-
     return baseBalance + impact;
   }
 }

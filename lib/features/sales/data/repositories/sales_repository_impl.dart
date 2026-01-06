@@ -13,9 +13,26 @@ class SalesRepositoryImpl implements SalesRepository {
   SalesRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<Either<Failure, List<InvoiceEntity>>> getInvoices() async {
+  Future<Either<Failure, List<InvoiceEntity>>> getInvoices({
+    required int limit,
+    InvoiceEntity? startAfter,
+    InvoiceType? type, // [NEW]
+  }) async {
     try {
-      final models = await _remoteDataSource.getInvoices();
+      final startAfterModel = startAfter != null
+          ? InvoiceModel.fromEntity(startAfter)
+          : null;
+
+      // [NEW] تحويل الـ Enum إلى String ليناسب قاعدة البيانات
+      // تأكد أن الاسم يطابق ما هو مخزن في فيربيس (مثلاً: "sales", "purchase")
+      final typeString = type?.name;
+
+      final models = await _remoteDataSource.getInvoices(
+        limit: limit,
+        startAfter: startAfterModel,
+        invoiceType: typeString, // [NEW]
+      );
+
       return Right(models.map((m) => m.toEntity()).toList());
     } catch (e) {
       return Left(ServerFailure(e.toString()));
@@ -24,7 +41,21 @@ class SalesRepositoryImpl implements SalesRepository {
 
   // [NEW] تنفيذ البحث
   @override
-  Future<Either<Failure, InvoiceEntity>> getInvoiceByNumber(String invoiceNumber) async {
+  Future<Either<Failure, List<InvoiceEntity>>> searchInvoices(
+    String query,
+  ) async {
+    try {
+      final models = await _remoteDataSource.searchInvoices(query);
+      return Right(models.map((m) => m.toEntity()).toList());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, InvoiceEntity>> getInvoiceByNumber(
+    String invoiceNumber,
+  ) async {
     try {
       final model = await _remoteDataSource.getInvoiceByNumber(invoiceNumber);
       return Right(model.toEntity());

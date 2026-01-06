@@ -14,14 +14,28 @@ class InvoicesListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<InvoicesListCubit>()..loadInvoices(),
+      create: (context) =>
+          getIt<InvoicesListCubit>()..loadInvoices(refresh: true),
       child: const _InvoicesListView(),
     );
   }
 }
 
-class _InvoicesListView extends StatelessWidget {
+class _InvoicesListView extends StatefulWidget {
   const _InvoicesListView();
+
+  @override
+  State<_InvoicesListView> createState() => _InvoicesListViewState();
+}
+
+class _InvoicesListViewState extends State<_InvoicesListView> {
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +48,20 @@ class _InvoicesListView extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: TextField(
+              controller: _searchCtrl,
               decoration: InputDecoration(
                 hintText: 'بحث برقم الفاتورة أو اسم العميل...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          context.read<InvoicesListCubit>().searchInvoices('');
+                          FocusScope.of(context).unfocus();
+                        },
+                      )
+                    : null,
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -46,6 +71,7 @@ class _InvoicesListView extends StatelessWidget {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20),
               ),
               onChanged: (value) {
+                // استخدام debounce (تأخير) بسيط هنا سيكون مثالياً، لكن للتبسيط نستدعي مباشرة
                 context.read<InvoicesListCubit>().searchInvoices(value);
               },
             ),
@@ -58,21 +84,43 @@ class _InvoicesListView extends StatelessWidget {
           Expanded(
             child: BlocBuilder<InvoicesListCubit, InvoicesListState>(
               builder: (context, state) {
-                if (state.isLoading && state.allInvoices.isEmpty) {
+                // حالة التحميل الأولي (فقط إذا كانت القائمة فارغة)
+                if (state.isLoading &&
+                    state.allInvoices.isEmpty &&
+                    state.searchResults.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (state.filteredInvoices.isEmpty) {
-                  return _buildEmptyState();
+                  // إذا كنا نبحث ولا توجد نتائج
+                  if (state.isSearching) {
+                    return _buildCenterMessage('لا توجد نتائج مطابقة للبحث');
+                  }
+                  // إذا كانت القائمة فارغة تماماً
+                  if (state.allInvoices.isEmpty) {
+                    return _buildCenterMessage('لا توجد فواتير لعرضها');
+                  }
+                  // إذا كانت الفلترة الحالية فارغة (مثلاً لا يوجد مرتجعات)
+                  return _buildCenterMessage('لا توجد فواتير في هذا القسم');
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () async =>
-                      context.read<InvoicesListCubit>().loadInvoices(),
+                  onRefresh: () async {
+                    _searchCtrl.clear();
+                    await context.read<InvoicesListCubit>().loadInvoices(
+                      refresh: true,
+                    );
+                  },
                   child: ListView.builder(
                     padding: const EdgeInsets.all(12),
-                    itemCount: state.filteredInvoices.length,
+                    // نضيف 1 للعنصر الإضافي (زر التحميل)
+                    itemCount: state.filteredInvoices.length + 1,
                     itemBuilder: (context, index) {
+                      // إذا وصلنا لآخر عنصر
+                      if (index >= state.filteredInvoices.length) {
+                        return _buildLoadMoreButton(context, state);
+                      }
+
                       final invoice = state.filteredInvoices[index];
                       return _InvoiceCard(invoice: invoice);
                     },
@@ -86,7 +134,49 @@ class _InvoicesListView extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildLoadMoreButton(BuildContext context, InvoicesListState state) {
+    // 1. لا نعرض الزر إذا كنا في وضع البحث
+    if (state.isSearching) return const SizedBox.shrink();
+
+    // 2. لا نعرض الزر إذا وصلنا للنهاية
+    if (state.hasReachedMax) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: Text(
+            "تم عرض جميع الفواتير",
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    // 3. عرض مؤشر تحميل إذا كان جاري جلب المزيد
+    if (state.isMoreLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // 4. عرض الزر
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextButton.icon(
+        onPressed: () {
+          context.read<InvoicesListCubit>().loadInvoices();
+        },
+        icon: const Icon(Icons.arrow_downward),
+        label: const Text("عرض المزيد"),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.all(16),
+          backgroundColor: Colors.grey.shade200,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterMessage(String msg) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -97,15 +187,17 @@ class _InvoicesListView extends StatelessWidget {
             color: Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'لا توجد فواتير لعرضها',
-            style: TextStyle(color: Colors.grey),
-          ),
+          Text(msg, style: const TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
 }
+
+// --- المكونات الأخرى (_FilterTabs و _InvoiceCard) تبقى كما هي في الكود السابق ---
+// يرجى التأكد من نسخ كلاس _FilterTabs و _InvoiceCard من الإجابة السابقة
+// ووضعهما هنا في نفس الملف لإكمال الكود.
+// لن أكررهما هنا لتوفير المساحة، لكنهما ضروريان.
 
 class _FilterTabs extends StatelessWidget {
   const _FilterTabs();
@@ -233,7 +325,6 @@ class _InvoiceCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // فتح التفاصيل عند الضغط على الكارت
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -247,7 +338,6 @@ class _InvoiceCard extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Column(
             children: [
-              // --- Header ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -333,7 +423,6 @@ class _InvoiceCard extends StatelessWidget {
                 ],
               ),
               const Divider(height: 20),
-              // --- Info ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -351,14 +440,10 @@ class _InvoiceCard extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // --- Actions Buttons (تمت إعادتها بناءً على طلبك) ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // 1. زر الطباعة
                   IconButton(
                     tooltip: 'طباعة',
                     icon: const Icon(Icons.print, color: Colors.grey),
@@ -368,8 +453,6 @@ class _InvoiceCard extends StatelessWidget {
                       );
                     },
                   ),
-
-                  // 2. زر إنشاء مرتجع (فقط للفواتير الأصلية)
                   if (!invoice.isReturn)
                     IconButton(
                       tooltip: 'إنشاء مرتجع',
@@ -387,8 +470,6 @@ class _InvoiceCard extends StatelessWidget {
                             });
                       },
                     ),
-
-                  // 3. زر التعديل
                   IconButton(
                     tooltip: 'تعديل',
                     icon: const Icon(Icons.edit, color: Colors.blue),
@@ -405,8 +486,6 @@ class _InvoiceCard extends StatelessWidget {
                           });
                     },
                   ),
-
-                  // 4. زر الحذف
                   IconButton(
                     tooltip: 'حذف',
                     icon: const Icon(Icons.delete, color: Colors.red),

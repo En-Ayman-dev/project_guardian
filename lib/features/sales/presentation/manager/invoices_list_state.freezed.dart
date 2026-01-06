@@ -14,11 +14,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$InvoicesListState {
 
- bool get isLoading; List<InvoiceEntity> get allInvoices;// المصدر الرئيسي
- List<InvoiceEntity> get filteredInvoices;// المعروض
- InvoiceType get filterType;// التبويب
- String get searchQuery;// [NEW] نص البحث
- String? get errorMessage;
+ bool get isLoading; bool get isMoreLoading;// [NEW] تحميل المزيد
+ bool get hasReachedMax;// [NEW] هل وصلنا للنهاية؟
+ bool get isSearching;// [NEW] هل نحن في وضع البحث؟
+ List<InvoiceEntity> get allInvoices;// القائمة المتراكمة (Pagination)
+ List<InvoiceEntity> get searchResults;// نتائج البحث (Search)
+ List<InvoiceEntity> get filteredInvoices;// المعروض في الواجهة
+ InvoiceType get filterType; String get searchQuery; String? get errorMessage;
 /// Create a copy of InvoicesListState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +31,16 @@ $InvoicesListStateCopyWith<InvoicesListState> get copyWith => _$InvoicesListStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvoicesListState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other.allInvoices, allInvoices)&&const DeepCollectionEquality().equals(other.filteredInvoices, filteredInvoices)&&(identical(other.filterType, filterType) || other.filterType == filterType)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvoicesListState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isMoreLoading, isMoreLoading) || other.isMoreLoading == isMoreLoading)&&(identical(other.hasReachedMax, hasReachedMax) || other.hasReachedMax == hasReachedMax)&&(identical(other.isSearching, isSearching) || other.isSearching == isSearching)&&const DeepCollectionEquality().equals(other.allInvoices, allInvoices)&&const DeepCollectionEquality().equals(other.searchResults, searchResults)&&const DeepCollectionEquality().equals(other.filteredInvoices, filteredInvoices)&&(identical(other.filterType, filterType) || other.filterType == filterType)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,const DeepCollectionEquality().hash(allInvoices),const DeepCollectionEquality().hash(filteredInvoices),filterType,searchQuery,errorMessage);
+int get hashCode => Object.hash(runtimeType,isLoading,isMoreLoading,hasReachedMax,isSearching,const DeepCollectionEquality().hash(allInvoices),const DeepCollectionEquality().hash(searchResults),const DeepCollectionEquality().hash(filteredInvoices),filterType,searchQuery,errorMessage);
 
 @override
 String toString() {
-  return 'InvoicesListState(isLoading: $isLoading, allInvoices: $allInvoices, filteredInvoices: $filteredInvoices, filterType: $filterType, searchQuery: $searchQuery, errorMessage: $errorMessage)';
+  return 'InvoicesListState(isLoading: $isLoading, isMoreLoading: $isMoreLoading, hasReachedMax: $hasReachedMax, isSearching: $isSearching, allInvoices: $allInvoices, searchResults: $searchResults, filteredInvoices: $filteredInvoices, filterType: $filterType, searchQuery: $searchQuery, errorMessage: $errorMessage)';
 }
 
 
@@ -49,7 +51,7 @@ abstract mixin class $InvoicesListStateCopyWith<$Res>  {
   factory $InvoicesListStateCopyWith(InvoicesListState value, $Res Function(InvoicesListState) _then) = _$InvoicesListStateCopyWithImpl;
 @useResult
 $Res call({
- bool isLoading, List<InvoiceEntity> allInvoices, List<InvoiceEntity> filteredInvoices, InvoiceType filterType, String searchQuery, String? errorMessage
+ bool isLoading, bool isMoreLoading, bool hasReachedMax, bool isSearching, List<InvoiceEntity> allInvoices, List<InvoiceEntity> searchResults, List<InvoiceEntity> filteredInvoices, InvoiceType filterType, String searchQuery, String? errorMessage
 });
 
 
@@ -66,10 +68,14 @@ class _$InvoicesListStateCopyWithImpl<$Res>
 
 /// Create a copy of InvoicesListState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? allInvoices = null,Object? filteredInvoices = null,Object? filterType = null,Object? searchQuery = null,Object? errorMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? isMoreLoading = null,Object? hasReachedMax = null,Object? isSearching = null,Object? allInvoices = null,Object? searchResults = null,Object? filteredInvoices = null,Object? filterType = null,Object? searchQuery = null,Object? errorMessage = freezed,}) {
   return _then(_self.copyWith(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as bool,isMoreLoading: null == isMoreLoading ? _self.isMoreLoading : isMoreLoading // ignore: cast_nullable_to_non_nullable
+as bool,hasReachedMax: null == hasReachedMax ? _self.hasReachedMax : hasReachedMax // ignore: cast_nullable_to_non_nullable
+as bool,isSearching: null == isSearching ? _self.isSearching : isSearching // ignore: cast_nullable_to_non_nullable
 as bool,allInvoices: null == allInvoices ? _self.allInvoices : allInvoices // ignore: cast_nullable_to_non_nullable
+as List<InvoiceEntity>,searchResults: null == searchResults ? _self.searchResults : searchResults // ignore: cast_nullable_to_non_nullable
 as List<InvoiceEntity>,filteredInvoices: null == filteredInvoices ? _self.filteredInvoices : filteredInvoices // ignore: cast_nullable_to_non_nullable
 as List<InvoiceEntity>,filterType: null == filterType ? _self.filterType : filterType // ignore: cast_nullable_to_non_nullable
 as InvoiceType,searchQuery: null == searchQuery ? _self.searchQuery : searchQuery // ignore: cast_nullable_to_non_nullable
@@ -159,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  List<InvoiceEntity> allInvoices,  List<InvoiceEntity> filteredInvoices,  InvoiceType filterType,  String searchQuery,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  bool isMoreLoading,  bool hasReachedMax,  bool isSearching,  List<InvoiceEntity> allInvoices,  List<InvoiceEntity> searchResults,  List<InvoiceEntity> filteredInvoices,  InvoiceType filterType,  String searchQuery,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InvoicesListState() when $default != null:
-return $default(_that.isLoading,_that.allInvoices,_that.filteredInvoices,_that.filterType,_that.searchQuery,_that.errorMessage);case _:
+return $default(_that.isLoading,_that.isMoreLoading,_that.hasReachedMax,_that.isSearching,_that.allInvoices,_that.searchResults,_that.filteredInvoices,_that.filterType,_that.searchQuery,_that.errorMessage);case _:
   return orElse();
 
 }
@@ -180,10 +186,10 @@ return $default(_that.isLoading,_that.allInvoices,_that.filteredInvoices,_that.f
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  List<InvoiceEntity> allInvoices,  List<InvoiceEntity> filteredInvoices,  InvoiceType filterType,  String searchQuery,  String? errorMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  bool isMoreLoading,  bool hasReachedMax,  bool isSearching,  List<InvoiceEntity> allInvoices,  List<InvoiceEntity> searchResults,  List<InvoiceEntity> filteredInvoices,  InvoiceType filterType,  String searchQuery,  String? errorMessage)  $default,) {final _that = this;
 switch (_that) {
 case _InvoicesListState():
-return $default(_that.isLoading,_that.allInvoices,_that.filteredInvoices,_that.filterType,_that.searchQuery,_that.errorMessage);case _:
+return $default(_that.isLoading,_that.isMoreLoading,_that.hasReachedMax,_that.isSearching,_that.allInvoices,_that.searchResults,_that.filteredInvoices,_that.filterType,_that.searchQuery,_that.errorMessage);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +206,10 @@ return $default(_that.isLoading,_that.allInvoices,_that.filteredInvoices,_that.f
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  List<InvoiceEntity> allInvoices,  List<InvoiceEntity> filteredInvoices,  InvoiceType filterType,  String searchQuery,  String? errorMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  bool isMoreLoading,  bool hasReachedMax,  bool isSearching,  List<InvoiceEntity> allInvoices,  List<InvoiceEntity> searchResults,  List<InvoiceEntity> filteredInvoices,  InvoiceType filterType,  String searchQuery,  String? errorMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _InvoicesListState() when $default != null:
-return $default(_that.isLoading,_that.allInvoices,_that.filteredInvoices,_that.filterType,_that.searchQuery,_that.errorMessage);case _:
+return $default(_that.isLoading,_that.isMoreLoading,_that.hasReachedMax,_that.isSearching,_that.allInvoices,_that.searchResults,_that.filteredInvoices,_that.filterType,_that.searchQuery,_that.errorMessage);case _:
   return null;
 
 }
@@ -215,31 +221,45 @@ return $default(_that.isLoading,_that.allInvoices,_that.filteredInvoices,_that.f
 
 
 class _InvoicesListState implements InvoicesListState {
-  const _InvoicesListState({this.isLoading = false, final  List<InvoiceEntity> allInvoices = const [], final  List<InvoiceEntity> filteredInvoices = const [], this.filterType = InvoiceType.sales, this.searchQuery = '', this.errorMessage}): _allInvoices = allInvoices,_filteredInvoices = filteredInvoices;
+  const _InvoicesListState({this.isLoading = false, this.isMoreLoading = false, this.hasReachedMax = false, this.isSearching = false, final  List<InvoiceEntity> allInvoices = const [], final  List<InvoiceEntity> searchResults = const [], final  List<InvoiceEntity> filteredInvoices = const [], this.filterType = InvoiceType.sales, this.searchQuery = '', this.errorMessage}): _allInvoices = allInvoices,_searchResults = searchResults,_filteredInvoices = filteredInvoices;
   
 
 @override@JsonKey() final  bool isLoading;
+@override@JsonKey() final  bool isMoreLoading;
+// [NEW] تحميل المزيد
+@override@JsonKey() final  bool hasReachedMax;
+// [NEW] هل وصلنا للنهاية؟
+@override@JsonKey() final  bool isSearching;
+// [NEW] هل نحن في وضع البحث؟
  final  List<InvoiceEntity> _allInvoices;
+// [NEW] هل نحن في وضع البحث؟
 @override@JsonKey() List<InvoiceEntity> get allInvoices {
   if (_allInvoices is EqualUnmodifiableListView) return _allInvoices;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_allInvoices);
 }
 
-// المصدر الرئيسي
+// القائمة المتراكمة (Pagination)
+ final  List<InvoiceEntity> _searchResults;
+// القائمة المتراكمة (Pagination)
+@override@JsonKey() List<InvoiceEntity> get searchResults {
+  if (_searchResults is EqualUnmodifiableListView) return _searchResults;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_searchResults);
+}
+
+// نتائج البحث (Search)
  final  List<InvoiceEntity> _filteredInvoices;
-// المصدر الرئيسي
+// نتائج البحث (Search)
 @override@JsonKey() List<InvoiceEntity> get filteredInvoices {
   if (_filteredInvoices is EqualUnmodifiableListView) return _filteredInvoices;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_filteredInvoices);
 }
 
-// المعروض
+// المعروض في الواجهة
 @override@JsonKey() final  InvoiceType filterType;
-// التبويب
 @override@JsonKey() final  String searchQuery;
-// [NEW] نص البحث
 @override final  String? errorMessage;
 
 /// Create a copy of InvoicesListState
@@ -252,16 +272,16 @@ _$InvoicesListStateCopyWith<_InvoicesListState> get copyWith => __$InvoicesListS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvoicesListState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other._allInvoices, _allInvoices)&&const DeepCollectionEquality().equals(other._filteredInvoices, _filteredInvoices)&&(identical(other.filterType, filterType) || other.filterType == filterType)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvoicesListState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isMoreLoading, isMoreLoading) || other.isMoreLoading == isMoreLoading)&&(identical(other.hasReachedMax, hasReachedMax) || other.hasReachedMax == hasReachedMax)&&(identical(other.isSearching, isSearching) || other.isSearching == isSearching)&&const DeepCollectionEquality().equals(other._allInvoices, _allInvoices)&&const DeepCollectionEquality().equals(other._searchResults, _searchResults)&&const DeepCollectionEquality().equals(other._filteredInvoices, _filteredInvoices)&&(identical(other.filterType, filterType) || other.filterType == filterType)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,const DeepCollectionEquality().hash(_allInvoices),const DeepCollectionEquality().hash(_filteredInvoices),filterType,searchQuery,errorMessage);
+int get hashCode => Object.hash(runtimeType,isLoading,isMoreLoading,hasReachedMax,isSearching,const DeepCollectionEquality().hash(_allInvoices),const DeepCollectionEquality().hash(_searchResults),const DeepCollectionEquality().hash(_filteredInvoices),filterType,searchQuery,errorMessage);
 
 @override
 String toString() {
-  return 'InvoicesListState(isLoading: $isLoading, allInvoices: $allInvoices, filteredInvoices: $filteredInvoices, filterType: $filterType, searchQuery: $searchQuery, errorMessage: $errorMessage)';
+  return 'InvoicesListState(isLoading: $isLoading, isMoreLoading: $isMoreLoading, hasReachedMax: $hasReachedMax, isSearching: $isSearching, allInvoices: $allInvoices, searchResults: $searchResults, filteredInvoices: $filteredInvoices, filterType: $filterType, searchQuery: $searchQuery, errorMessage: $errorMessage)';
 }
 
 
@@ -272,7 +292,7 @@ abstract mixin class _$InvoicesListStateCopyWith<$Res> implements $InvoicesListS
   factory _$InvoicesListStateCopyWith(_InvoicesListState value, $Res Function(_InvoicesListState) _then) = __$InvoicesListStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isLoading, List<InvoiceEntity> allInvoices, List<InvoiceEntity> filteredInvoices, InvoiceType filterType, String searchQuery, String? errorMessage
+ bool isLoading, bool isMoreLoading, bool hasReachedMax, bool isSearching, List<InvoiceEntity> allInvoices, List<InvoiceEntity> searchResults, List<InvoiceEntity> filteredInvoices, InvoiceType filterType, String searchQuery, String? errorMessage
 });
 
 
@@ -289,10 +309,14 @@ class __$InvoicesListStateCopyWithImpl<$Res>
 
 /// Create a copy of InvoicesListState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? allInvoices = null,Object? filteredInvoices = null,Object? filterType = null,Object? searchQuery = null,Object? errorMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? isMoreLoading = null,Object? hasReachedMax = null,Object? isSearching = null,Object? allInvoices = null,Object? searchResults = null,Object? filteredInvoices = null,Object? filterType = null,Object? searchQuery = null,Object? errorMessage = freezed,}) {
   return _then(_InvoicesListState(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as bool,isMoreLoading: null == isMoreLoading ? _self.isMoreLoading : isMoreLoading // ignore: cast_nullable_to_non_nullable
+as bool,hasReachedMax: null == hasReachedMax ? _self.hasReachedMax : hasReachedMax // ignore: cast_nullable_to_non_nullable
+as bool,isSearching: null == isSearching ? _self.isSearching : isSearching // ignore: cast_nullable_to_non_nullable
 as bool,allInvoices: null == allInvoices ? _self._allInvoices : allInvoices // ignore: cast_nullable_to_non_nullable
+as List<InvoiceEntity>,searchResults: null == searchResults ? _self._searchResults : searchResults // ignore: cast_nullable_to_non_nullable
 as List<InvoiceEntity>,filteredInvoices: null == filteredInvoices ? _self._filteredInvoices : filteredInvoices // ignore: cast_nullable_to_non_nullable
 as List<InvoiceEntity>,filterType: null == filterType ? _self.filterType : filterType // ignore: cast_nullable_to_non_nullable
 as InvoiceType,searchQuery: null == searchQuery ? _self.searchQuery : searchQuery // ignore: cast_nullable_to_non_nullable

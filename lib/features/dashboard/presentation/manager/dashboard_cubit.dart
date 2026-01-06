@@ -23,7 +23,7 @@ class DashboardCubit extends Cubit<DashboardState> {
 
     // تنفيذ الطلبات بشكل متوازي لزيادة السرعة
     final results = await Future.wait([
-      _salesRepository.getInvoices(),
+      _salesRepository.getInvoices(limit: 10), // جلب كل الفواتير لتحليلها
       _productRepository.getProducts(),
       _clientRepository.getClientsSuppliers(ClientType.client),
     ]);

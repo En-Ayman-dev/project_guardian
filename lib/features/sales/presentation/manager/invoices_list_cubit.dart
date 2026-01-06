@@ -2,118 +2,182 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import '../../domain/entities/invoice_entity.dart';
 import '../../domain/usecases/get_invoices_usecase.dart';
+import '../../domain/usecases/search_invoices_usecase.dart'; // [NEW]
 import '../../domain/usecases/delete_invoice_usecase.dart';
 import 'invoices_list_state.dart';
 
 @injectable
 class InvoicesListCubit extends Cubit<InvoicesListState> {
   final GetInvoicesUseCase _getInvoicesUseCase;
+  final SearchInvoicesUseCase _searchInvoicesUseCase; // [NEW]
   final DeleteInvoiceUseCase _deleteInvoiceUseCase;
 
-  InvoicesListCubit(this._getInvoicesUseCase, this._deleteInvoiceUseCase)
-    : super(const InvoicesListState());
+  static const int _pageSize = 10; // عدد العناصر في كل صفحة
 
-  /// تحميل الفواتير
-  Future<void> loadInvoices() async {
+  InvoicesListCubit(
+    this._getInvoicesUseCase,
+    this._searchInvoicesUseCase,
+    this._deleteInvoiceUseCase,
+  ) : super(const InvoicesListState());
+
+  /// تحميل الفواتير (Pagination)
+  Future<void> loadInvoices({bool refresh = false}) async {
+    if (isClosed) return;
+    if (state.isMoreLoading) return; // منع التكرار أثناء التحميل
+
+    // إذا كان تحديث (سحب لأسفل)، نصفر كل شيء
+    if (refresh) {
+      emit(
+        state.copyWith(
+          isLoading: true,
+          allInvoices: [],
+          hasReachedMax: false,
+          isSearching: false,
+          searchQuery: '',
+        ),
+      );
+    } else {
+      // إذا لم يكن تحديثاً ووصلنا للنهاية، نتوقف
+      if (state.hasReachedMax) return;
+      emit(state.copyWith(isMoreLoading: true, errorMessage: null));
+    }
+
+    // تحديد نقطة البداية (StartAfter)
+    InvoiceEntity? startAfter;
+    if (!refresh && state.allInvoices.isNotEmpty) {
+      startAfter = state.allInvoices.last;
+    }
+
+// في داخل loadInvoices، مرر النوع الحالي
+final result = await _getInvoicesUseCase(
+  limit: _pageSize, 
+  startAfter: startAfter,
+  type: state.filterType, // [NEW] نمرر نوع الفلتر الحالي للسيرفر
+);
+
     if (isClosed) return;
 
-    emit(state.copyWith(isLoading: true, errorMessage: null));
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isLoading: false,
+          isMoreLoading: false,
+          errorMessage: failure.message,
+        ),
+      ),
+      (newInvoices) {
+        final isMax = newInvoices.length < _pageSize;
+        final updatedList = refresh
+            ? newInvoices
+            : [...state.allInvoices, ...newInvoices];
 
-    final result = await _getInvoicesUseCase();
+        emit(
+          state.copyWith(
+            isLoading: false,
+            isMoreLoading: false,
+            hasReachedMax: isMax,
+            allInvoices: updatedList,
+            isSearching: false, // تأكيد الخروج من وضع البحث
+          ),
+        );
+        _applyFilter(); // تحديث القائمة المعروضة
+      },
+    );
+  }
+
+  /// البحث في السيرفر
+  Future<void> searchInvoices(String query) async {
+    if (isClosed) return;
+    final normalizedQuery = _normalizeNumbers(query.trim());
+
+    if (normalizedQuery.isEmpty) {
+      // إلغاء البحث والعودة للقائمة العادية
+      emit(
+        state.copyWith(isSearching: false, searchQuery: '', errorMessage: null),
+      );
+      _applyFilter();
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        isLoading: true,
+        isSearching: true,
+        searchQuery: normalizedQuery,
+      ),
+    );
+
+    final result = await _searchInvoicesUseCase(normalizedQuery);
 
     if (isClosed) return;
 
     result.fold(
       (failure) =>
           emit(state.copyWith(isLoading: false, errorMessage: failure.message)),
-      (invoices) {
-        emit(state.copyWith(isLoading: false, allInvoices: invoices));
-        // تطبيق الفلاتر الحالية (النوع + البحث إن وجد)
+      (results) {
+        emit(state.copyWith(isLoading: false, searchResults: results));
         _applyFilter();
       },
     );
   }
 
-  /// [NEW] البحث في الفواتير
-  void searchInvoices(String query) {
-    emit(state.copyWith(searchQuery: query));
-    _applyFilter();
-  }
+void changeFilter(InvoiceType type) {
+  // 1. نحدث النوع في الحالة
+  emit(state.copyWith(filterType: type));
+  
+  // 2. [IMPORTANT] نعيد تحميل البيانات من السيرفر بناءً على النوع الجديد
+  loadInvoices(refresh: true); 
+}
 
-  /// تغيير التبويب
-  void changeFilter(InvoiceType type) {
-    emit(state.copyWith(filterType: type));
-    _applyFilter();
-  }
-
-  /// [CORE] دالة الفلترة المركزية
+  /// دالة الفلترة المركزية
   void _applyFilter() {
-    final query = state.searchQuery.trim().toLowerCase();
-    final normalizedQuery = _normalizeNumbers(
-      query,
-    ); // التعامل مع الأرقام العربية
+    List<InvoiceEntity> sourceList;
 
-    final filtered = state.allInvoices.where((inv) {
-      // 1. شرط النوع (التبويب)
-      final matchesType = inv.type == state.filterType;
+    // تحديد مصدر البيانات (بحث أم قائمة عادية)
+    if (state.isSearching) {
+      sourceList = state.searchResults;
+    } else {
+      sourceList = state.allInvoices;
+    }
 
-      // 2. شرط البحث (الاسم أو الرقم)
-      if (query.isEmpty) return matchesType;
-
-      final matchesName = inv.clientName.toLowerCase().contains(query);
-      final matchesNumber = inv.invoiceNumber.contains(normalizedQuery);
-
-      return matchesType && (matchesName || matchesNumber);
-    }).toList();
+    // تطبيق فلتر التبويب (Sales, Purchase, etc.)
+    final filtered = sourceList
+        .where((inv) => inv.type == state.filterType)
+        .toList();
 
     emit(state.copyWith(filteredInvoices: filtered));
   }
 
-  /// تحويل الأرقام العربية إلى إنجليزية للبحث
   String _normalizeNumbers(String input) {
     const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-
     for (int i = 0; i < arabic.length; i++) {
       input = input.replaceAll(arabic[i], english[i]);
     }
     return input;
   }
 
-  /// حذف فاتورة
   Future<void> deleteInvoice(InvoiceEntity invoice) async {
     if (isClosed) return;
 
-    final previousList = List<InvoiceEntity>.from(state.allInvoices);
-
-    // التحديث التفاؤلي للقائمة الرئيسية
-    final updatedAllList = state.allInvoices
+    // حذف محلي سريع
+    final updatedAll = state.allInvoices
+        .where((i) => i.id != invoice.id)
+        .toList();
+    final updatedSearch = state.searchResults
         .where((i) => i.id != invoice.id)
         .toList();
 
-    // تحديث الحالة بالقائمة الجديدة ثم إعادة تطبيق الفلتر
-    emit(state.copyWith(allInvoices: updatedAllList));
+    emit(state.copyWith(allInvoices: updatedAll, searchResults: updatedSearch));
     _applyFilter();
 
     final result = await _deleteInvoiceUseCase(invoice);
 
-    if (isClosed) return;
-
     result.fold(
-      (failure) {
-        // تراجع عند الخطأ
-        emit(
-          state.copyWith(
-            errorMessage: failure.message,
-            allInvoices: previousList,
-          ),
-        );
-        _applyFilter();
-      },
-      (_) {
-        // نجاح، يفضل إعادة التحميل لضمان تزامن المخزون
-        loadInvoices();
-      },
+      (failure) => emit(
+        state.copyWith(errorMessage: failure.message),
+      ), // يمكن إعادة التحميل هنا للتصحيح
+      (_) {},
     );
   }
 }

@@ -7,10 +7,16 @@ part 'invoices_list_state.freezed.dart';
 abstract class InvoicesListState with _$InvoicesListState {
   const factory InvoicesListState({
     @Default(false) bool isLoading,
-    @Default([]) List<InvoiceEntity> allInvoices, // المصدر الرئيسي
-    @Default([]) List<InvoiceEntity> filteredInvoices, // المعروض
-    @Default(InvoiceType.sales) InvoiceType filterType, // التبويب
-    @Default('') String searchQuery, // [NEW] نص البحث
+    @Default(false) bool isMoreLoading, // [NEW] تحميل المزيد
+    @Default(false) bool hasReachedMax, // [NEW] هل وصلنا للنهاية؟
+    @Default(false) bool isSearching,   // [NEW] هل نحن في وضع البحث؟
+    
+    @Default([]) List<InvoiceEntity> allInvoices, // القائمة المتراكمة (Pagination)
+    @Default([]) List<InvoiceEntity> searchResults, // نتائج البحث (Search)
+    @Default([]) List<InvoiceEntity> filteredInvoices, // المعروض في الواجهة
+    
+    @Default(InvoiceType.sales) InvoiceType filterType,
+    @Default('') String searchQuery,
     String? errorMessage,
   }) = _InvoicesListState;
 }
