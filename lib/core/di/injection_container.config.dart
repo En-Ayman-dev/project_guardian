@@ -87,6 +87,8 @@ import '../../features/sales/domain/repositories/sales_repository.dart'
 import '../../features/sales/domain/usecases/add_invoice_usecase.dart' as _i61;
 import '../../features/sales/domain/usecases/delete_invoice_usecase.dart'
     as _i661;
+import '../../features/sales/domain/usecases/get_invoice_by_number_usecase.dart'
+    as _i878;
 import '../../features/sales/domain/usecases/get_invoices_usecase.dart'
     as _i163;
 import '../../features/sales/domain/usecases/update_invoice_usecase.dart'
@@ -237,6 +239,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i661.DeleteInvoiceUseCase>(
       () => _i661.DeleteInvoiceUseCase(gh<_i434.SalesRepository>()),
     );
+    gh.lazySingleton<_i878.GetInvoiceByNumberUseCase>(
+      () => _i878.GetInvoiceByNumberUseCase(gh<_i434.SalesRepository>()),
+    );
     gh.lazySingleton<_i163.GetInvoicesUseCase>(
       () => _i163.GetInvoicesUseCase(gh<_i434.SalesRepository>()),
     );
@@ -255,6 +260,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1014.UpdateInvoiceUseCase>(),
         gh<_i340.GetProductsUseCase>(),
         gh<_i39.GetClientsSuppliersUseCase>(),
+        gh<_i878.GetInvoiceByNumberUseCase>(),
       ),
     );
     return this;

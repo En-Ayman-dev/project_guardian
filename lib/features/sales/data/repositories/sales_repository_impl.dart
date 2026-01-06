@@ -18,7 +18,17 @@ class SalesRepositoryImpl implements SalesRepository {
       final models = await _remoteDataSource.getInvoices();
       return Right(models.map((m) => m.toEntity()).toList());
     } catch (e) {
-      // تمرير الرسالة الأصلية للمساعدة في التشخيص
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  // [NEW] تنفيذ البحث
+  @override
+  Future<Either<Failure, InvoiceEntity>> getInvoiceByNumber(String invoiceNumber) async {
+    try {
+      final model = await _remoteDataSource.getInvoiceByNumber(invoiceNumber);
+      return Right(model.toEntity());
+    } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
   }

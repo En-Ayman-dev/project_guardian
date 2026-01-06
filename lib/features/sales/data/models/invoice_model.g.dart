@@ -19,6 +19,7 @@ _InvoiceModel _$InvoiceModelFromJson(Map<String, dynamic> json) =>
             json['paymentType'],
           ) ??
           InvoicePaymentType.cash,
+      originalInvoiceNumber: json['originalInvoiceNumber'] as String?,
       clientId: json['clientId'] as String,
       clientName: json['clientName'] as String,
       date: const TimestampConverter().fromJson(json['date'] as Object),
@@ -43,6 +44,7 @@ Map<String, dynamic> _$InvoiceModelToJson(_InvoiceModel instance) =>
       'type': _$InvoiceTypeEnumMap[instance.type]!,
       'status': _$InvoiceStatusEnumMap[instance.status]!,
       'paymentType': _$InvoicePaymentTypeEnumMap[instance.paymentType]!,
+      'originalInvoiceNumber': instance.originalInvoiceNumber,
       'clientId': instance.clientId,
       'clientName': instance.clientName,
       'date': const TimestampConverter().toJson(instance.date),

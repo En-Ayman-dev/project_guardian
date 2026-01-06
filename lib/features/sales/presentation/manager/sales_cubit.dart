@@ -8,6 +8,7 @@ import '../../../clients_suppliers/domain/entities/client_supplier_entity.dart';
 import '../../domain/entities/invoice_entity.dart';
 import '../../domain/entities/invoice_item_entity.dart';
 import '../../domain/usecases/add_invoice_usecase.dart';
+import '../../domain/usecases/get_invoice_by_number_usecase.dart';
 import '../../domain/usecases/update_invoice_usecase.dart';
 import '../../../inventory/domain/usecases/get_products_usecase.dart';
 import '../../../clients_suppliers/domain/usecases/get_clients_suppliers_usecase.dart';
@@ -20,6 +21,7 @@ class SalesCubit extends Cubit<SalesState> {
   final UpdateInvoiceUseCase _updateInvoiceUseCase;
   final GetProductsUseCase _getProductsUseCase;
   final GetClientsSuppliersUseCase _getClientsUseCase;
+  final GetInvoiceByNumberUseCase _getInvoiceByNumberUseCase;
 
   InvoiceEntity? _editingInvoice;
 
@@ -28,6 +30,7 @@ class SalesCubit extends Cubit<SalesState> {
     this._updateInvoiceUseCase,
     this._getProductsUseCase,
     this._getClientsUseCase,
+    this._getInvoiceByNumberUseCase,
   ) : super(const SalesState());
 
   /// تهيئة الصفحة (وضع جديد أو تعديل)
@@ -39,15 +42,35 @@ class SalesCubit extends Cubit<SalesState> {
 
     _editingInvoice = invoiceToEdit;
 
+    // [NEW] منطق استرجاع الفاتورة الأصلية عند التعديل
+    InvoiceEntity? fetchedOriginalInvoice;
+
+    // إذا كنا نعدل فاتورة، وهي من نوع مرتجع، ولديها رقم مرجعي
+    if (invoiceToEdit != null &&
+        invoiceToEdit.originalInvoiceNumber != null &&
+        (invoiceToEdit.type == InvoiceType.salesReturn ||
+            invoiceToEdit.type == InvoiceType.purchaseReturn)) {
+      // نقوم بجلب الفاتورة الأصلية لتمكين التحقق من الكميات
+      final result = await _getInvoiceByNumberUseCase(
+        invoiceToEdit.originalInvoiceNumber!,
+      );
+      result.fold((failure) {
+        // في حال فشل الجلب (مثلاً الفاتورة الأصلية حذفت)، يمكننا تركها null
+        // أو تسجيل خطأ، لكن سنكمل التحميل لكي لا نعطل المستخدم
+      }, (invoice) => fetchedOriginalInvoice = invoice);
+    }
+
     emit(
       state.copyWith(
         isLoading: true,
         errorMessage: null,
         isSuccess: false,
-        lastSavedInvoice: null, // تصفير آخر فاتورة محفوظة
+        lastSavedInvoice: null,
+
+        // [FIXED] تعبئة الفاتورة الأصلية إذا وجدت
+        originalInvoice: fetchedOriginalInvoice,
 
         invoiceType: invoiceToEdit?.type ?? type,
-        // إذا كنا نعدل، نأخذ نوع الدفع من الفاتورة القديمة
         paymentType: invoiceToEdit?.paymentType ?? InvoicePaymentType.cash,
 
         cartItems: invoiceToEdit?.items ?? [],
@@ -61,18 +84,36 @@ class SalesCubit extends Cubit<SalesState> {
     await _loadDependencies();
   }
 
-  /// تغيير نوع الفاتورة (مبيعات/مشتريات/...)
+  /// البحث عن فاتورة أصلية للمرتجع (عند الإنشاء الجديد)
+  Future<void> searchForInvoice(String invoiceNumber) async {
+    if (invoiceNumber.isEmpty) return;
+
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+
+    final result = await _getInvoiceByNumberUseCase(invoiceNumber);
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: "الفاتورة رقم $invoiceNumber غير موجودة",
+        ),
+      ),
+      (originalInvoice) => initializeForReturn(originalInvoice),
+    );
+  }
+
   Future<void> changeInvoiceType(InvoiceType type) async {
     if (_editingInvoice != null) return;
     if (state.invoiceType == type) return;
     await initialize(type: type);
   }
 
-  /// [NEW] تغيير طريقة الدفع (نقد/أجل)
   void setPaymentType(InvoicePaymentType type) {
     if (isClosed) return;
 
-    // منطق ذكي: إذا نقد، المدفوع = الإجمالي. إذا أجل، المدفوع = 0 مبدئياً
+    if (state.originalInvoice != null) return;
+
     double newPaidAmount = state.paidAmount;
     if (type == InvoicePaymentType.cash) {
       newPaidAmount = state.totalAmount;
@@ -85,6 +126,43 @@ class SalesCubit extends Cubit<SalesState> {
 
   void addItem(InvoiceItemEntity newItem) {
     if (isClosed) return;
+
+    // [VALIDATION] التحقق من المرتجعات
+    if (state.originalInvoice != null) {
+      final originalItem = state.originalInvoice!.items.firstWhere(
+        (item) => item.productId == newItem.productId,
+        orElse: () => newItem.copyWith(quantity: -1),
+      );
+
+      if (originalItem.quantity == -1) {
+        emit(
+          state.copyWith(
+            errorMessage: "هذا المنتج غير موجود في الفاتورة الأصلية!",
+          ),
+        );
+        return;
+      }
+
+      // حساب الكمية المتوقعة بعد الإضافة
+      int finalQtyToCheck = newItem.quantity;
+      final existingIndex = state.cartItems.indexWhere(
+        (item) => item.productId == newItem.productId,
+      );
+      if (existingIndex != -1) {
+        finalQtyToCheck += state.cartItems[existingIndex].quantity;
+      }
+
+      if (finalQtyToCheck > originalItem.quantity) {
+        emit(
+          state.copyWith(
+            errorMessage:
+                "لا يمكن إرجاع كمية ($finalQtyToCheck) أكبر من المباعة (${originalItem.quantity})!",
+          ),
+        );
+        return;
+      }
+    }
+
     final currentCart = List<InvoiceItemEntity>.from(state.cartItems);
     final existingIndex = currentCart.indexWhere(
       (item) => item.productId == newItem.productId,
@@ -109,6 +187,25 @@ class SalesCubit extends Cubit<SalesState> {
       removeItem(index);
       return;
     }
+
+    // [VALIDATION] التحقق عند تعديل الكمية
+    if (state.originalInvoice != null) {
+      final itemBeingUpdated = state.cartItems[index];
+      final originalItem = state.originalInvoice!.items.firstWhere(
+        (e) => e.productId == itemBeingUpdated.productId,
+      );
+
+      if (newQuantity > originalItem.quantity) {
+        emit(
+          state.copyWith(
+            errorMessage:
+                "الكمية تتجاوز الكمية الأصلية (${originalItem.quantity})",
+          ),
+        );
+        return;
+      }
+    }
+
     final currentCart = List<InvoiceItemEntity>.from(state.cartItems);
     final item = currentCart[index];
     currentCart[index] = item.copyWith(
@@ -134,7 +231,6 @@ class SalesCubit extends Cubit<SalesState> {
     emit(state.copyWith(paidAmount: amount));
   }
 
-  /// المحرك الحسابي
   void _calculateTotals({
     List<InvoiceItemEntity>? cart,
     double? discountOverride,
@@ -148,11 +244,10 @@ class SalesCubit extends Cubit<SalesState> {
       subTotal += item.total;
     }
 
-    double tax = 0; // الضريبة ملغاة
+    double tax = 0;
     double total = (subTotal - discount);
     if (total < 0) total = 0;
 
-    // تحديث المدفوع تلقائياً إذا كان الدفع نقداً
     double paid = state.paidAmount;
     if (state.paymentType == InvoicePaymentType.cash) {
       paid = total;
@@ -180,9 +275,6 @@ class SalesCubit extends Cubit<SalesState> {
     emit(state.copyWith(isLoading: true, isSuccess: false, errorMessage: null));
 
     const status = InvoiceStatus.posted;
-
-    // في حالة الإضافة، الـ invoiceNumber سيتم توليده في الـ DataSource
-    // لذا نمرر قيمة مؤقتة هنا وسيتم استبدالها هناك.
     final invoiceId = _editingInvoice?.id ?? const Uuid().v4();
     final invoiceNumber = _editingInvoice?.invoiceNumber ?? "TEMP";
 
@@ -191,7 +283,8 @@ class SalesCubit extends Cubit<SalesState> {
       invoiceNumber: invoiceNumber,
       type: state.invoiceType,
       status: status,
-      paymentType: state.paymentType, // [MAPPED]
+      paymentType: state.paymentType,
+      originalInvoiceNumber: state.originalInvoice?.invoiceNumber,
       clientId: clientId,
       clientName: clientName,
       date: DateTime.now(),
@@ -217,29 +310,21 @@ class SalesCubit extends Cubit<SalesState> {
       (failure) =>
           emit(state.copyWith(isLoading: false, errorMessage: failure.message)),
       (_) {
-        // عند النجاح، نحفظ الفاتورة في الحالة ولا نصفر البيانات فوراً
-        // لكي نعرض زر الطباعة
         emit(
           state.copyWith(
             isLoading: false,
             isSuccess: true,
-            lastSavedInvoice: invoice, // حفظ الفاتورة للطباعة
+            lastSavedInvoice: invoice,
           ),
         );
-
-        // ملاحظة: لا نصفر cartItems هنا، بل نترك للمستخدم خيار "فاتورة جديدة"
-        // أو الطباعة ثم الخروج.
         _editingInvoice = null;
       },
     );
   }
 
-  /// دالة لبدء فاتورة جديدة بعد النجاح
   void resetAfterSuccess() {
     initialize(type: state.invoiceType);
   }
-
-  // --- Helpers ---
 
   Future<void> initializeForReturn(InvoiceEntity originalInvoice) async {
     if (isClosed) return;
@@ -251,7 +336,13 @@ class SalesCubit extends Cubit<SalesState> {
     } else if (originalInvoice.type == InvoiceType.purchase) {
       returnType = InvoiceType.purchaseReturn;
     } else {
-      returnType = InvoiceType.salesReturn;
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: "لا يمكن إنشاء مرتجع لهذه الفاتورة",
+        ),
+      );
+      return;
     }
 
     emit(
@@ -260,18 +351,14 @@ class SalesCubit extends Cubit<SalesState> {
         errorMessage: null,
         isSuccess: false,
         lastSavedInvoice: null,
-
+        originalInvoice: originalInvoice,
         invoiceType: returnType,
-        // في المرتجع، غالباً الدفع يكون نقد (إرجاع مال) أو خصم من الدين
-        // سنفترضه نقد مبدئياً
-        paymentType: InvoicePaymentType.cash,
-
-        cartItems: originalInvoice.items.map((e) => e.copyWith()).toList(),
-        subTotal: originalInvoice.subTotal,
-        totalAmount: originalInvoice.subTotal - originalInvoice.discount,
-        discount: originalInvoice.discount,
-        paidAmount:
-            originalInvoice.subTotal - originalInvoice.discount, // لأنه نقد
+        paymentType: originalInvoice.paymentType,
+        cartItems: [],
+        subTotal: 0,
+        totalAmount: 0,
+        discount: 0,
+        paidAmount: 0,
         tax: 0,
       ),
     );

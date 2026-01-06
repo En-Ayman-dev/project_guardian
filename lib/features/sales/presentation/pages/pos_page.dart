@@ -59,6 +59,10 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
   final TextEditingController _paidCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
 
+  // [NEW] كنترولر للبحث عن الفاتورة الأصلية (للتعبئة عند التعديل)
+  final TextEditingController _originalInvoiceSearchCtrl =
+      TextEditingController();
+
   ClientSupplierEntity? _selectedClient;
 
   @override
@@ -69,7 +73,6 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
       _fillData(widget.invoiceToEdit!);
     } else if (widget.originalInvoiceForReturn != null) {
       _fillData(widget.originalInvoiceForReturn!);
-      // في المرتجع، نصفر المدفوع والخصم
       _paidCtrl.clear();
       _discountCtrl.clear();
       _noteCtrl.text =
@@ -81,6 +84,11 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
     _discountCtrl.text = inv.discount > 0 ? inv.discount.toString() : '';
     _paidCtrl.text = inv.paidAmount > 0 ? inv.paidAmount.toString() : '';
     _noteCtrl.text = inv.note ?? '';
+
+    // [NEW] تعبئة رقم الفاتورة الأصلية إذا وجد
+    if (inv.originalInvoiceNumber != null) {
+      _originalInvoiceSearchCtrl.text = inv.originalInvoiceNumber!;
+    }
 
     _selectedClient = ClientSupplierEntity(
       id: inv.clientId,
@@ -98,6 +106,7 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
     _discountCtrl.dispose();
     _paidCtrl.dispose();
     _noteCtrl.dispose();
+    _originalInvoiceSearchCtrl.dispose(); // [NEW] تنظيف
     super.dispose();
   }
 
@@ -107,11 +116,64 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
     final isReturn = widget.originalInvoiceForReturn != null;
 
     return BlocConsumer<SalesCubit, SalesState>(
+      listenWhen: (previous, current) {
+        final msgChanged =
+            previous.errorMessage != current.errorMessage ||
+            previous.isSuccess != current.isSuccess;
+        final originalInvoiceChanged =
+            previous.originalInvoice != current.originalInvoice;
+        return msgChanged || originalInvoiceChanged;
+      },
       listener: (context, state) {
+        // A. البحث الناجح
+        if (state.originalInvoice != null &&
+            _selectedClient?.id != state.originalInvoice!.clientId) {
+          final client = state.clients.firstWhere(
+            (c) => c.id == state.originalInvoice!.clientId,
+            orElse: () => ClientSupplierEntity(
+              id: state.originalInvoice!.clientId,
+              name: state.originalInvoice!.clientName,
+              email: '',
+              phone: '',
+              address: '',
+              type: ClientType.client,
+              createdAt: DateTime.now(),
+            ),
+          );
+
+          setState(() {
+            _selectedClient = client;
+            // إذا لم يكن هناك ملاحظة مكتوبة مسبقاً، نضع الملاحظة الافتراضية
+            if (_noteCtrl.text.isEmpty) {
+              _noteCtrl.text =
+                  "مرتجع من الفاتورة #${state.originalInvoice!.invoiceNumber}";
+            }
+            // في حالة التعديل، لا نصفر الأرقام المالية لأنها محملة بالفعل
+            // نصفرها فقط إذا كنا في وضع إنشاء مرتجع جديد (ليس تعديل)
+            if (!isEdit) {
+              _paidCtrl.text = "0";
+              _discountCtrl.text = "0";
+            }
+          });
+
+          if (!isEdit) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("✅ تم تحميل بيانات الفاتورة والعميل بنجاح"),
+                backgroundColor: Colors.blueAccent,
+              ),
+            );
+          }
+        }
+
+        // B. النجاح والحفظ
         if (state.isSuccess) {
           String msg = 'تم حفظ الفاتورة بنجاح';
           if (isEdit) msg = 'تم تعديل الفاتورة بنجاح';
-          if (isReturn) msg = 'تم حفظ المرتجع بنجاح';
+          if (state.invoiceType == InvoiceType.salesReturn ||
+              state.invoiceType == InvoiceType.purchaseReturn) {
+            msg = isEdit ? 'تم تعديل المرتجع بنجاح' : 'تم حفظ المرتجع بنجاح';
+          }
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.green),
@@ -123,6 +185,8 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
             _resetForm(context);
           }
         }
+
+        // C. الأخطاء
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -146,7 +210,7 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
             isReturn: isReturn,
             invoiceNumber: widget.invoiceToEdit?.invoiceNumber,
             onTypeChanged: () {
-              setState(() => _selectedClient = null);
+              _resetForm(context);
             },
           ),
           body: Column(
@@ -159,37 +223,39 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
                 invoiceDate: widget.invoiceToEdit?.date ?? DateTime.now(),
                 onClientSelected: (selection) =>
                     setState(() => _selectedClient = selection),
+                searchController:
+                    _originalInvoiceSearchCtrl, // [NEW] تمرير الكنترولر
               ),
               const Divider(height: 1),
-              
+
               PosProductEntry(
                 invoiceType: state.invoiceType,
                 products: state.products,
               ),
-              
+
               const Divider(height: 1),
-              
-              Expanded(
-                child: PosItemsTable(items: state.cartItems),
-              ),
-              
+
+              Expanded(child: PosItemsTable(items: state.cartItems)),
+
               PosFinancialFooter(
                 state: state,
                 isEdit: isEdit,
                 isReturn: isReturn,
                 discountCtrl: _discountCtrl,
                 paidCtrl: _paidCtrl,
+                noteCtrl: _noteCtrl,
                 onDiscountChanged: (val) =>
                     context.read<SalesCubit>().setDiscount(val),
                 onPaidChanged: (val) =>
                     context.read<SalesCubit>().setPaidAmount(val),
-                onSubmit: (state.cartItems.isNotEmpty && _selectedClient != null)
+                onSubmit:
+                    (state.cartItems.isNotEmpty && _selectedClient != null)
                     ? () {
                         context.read<SalesCubit>().submitInvoice(
-                              clientId: _selectedClient!.id,
-                              clientName: _selectedClient!.name,
-                              note: _noteCtrl.text,
-                            );
+                          clientId: _selectedClient!.id,
+                          clientName: _selectedClient!.name,
+                          note: _noteCtrl.text,
+                        );
                       }
                     : null,
               ),
@@ -206,8 +272,8 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
       _discountCtrl.clear();
       _paidCtrl.clear();
       _noteCtrl.clear();
+      _originalInvoiceSearchCtrl.clear(); // [NEW]
     });
-    // إعادة تهيئة الكيوبت
-    context.read<SalesCubit>().initialize();
+    context.read<SalesCubit>().resetAfterSuccess();
   }
 }

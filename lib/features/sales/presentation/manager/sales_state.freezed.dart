@@ -16,11 +16,12 @@ mixin _$SalesState {
 
  bool get isLoading;// البيانات المرجعية
  List<ProductEntity> get products; List<ClientSupplierEntity> get clients;// بيانات العملية الحالية
- InvoiceType get invoiceType; InvoicePaymentType get paymentType;// [NEW] طريقة الدفع
- List<InvoiceItemEntity> get cartItems;// الحسابات المالية
+ InvoiceType get invoiceType; InvoicePaymentType get paymentType; List<InvoiceItemEntity> get cartItems;// الحسابات المالية
  double get subTotal; double get discount; double get tax; double get totalAmount; double get paidAmount;// حالة التحكم
- String? get errorMessage; bool get isSuccess;// [NEW] الفاتورة التي تم حفظها للتو (لغرض الطباعة وإخفاء زر الحفظ)
- InvoiceEntity? get lastSavedInvoice;
+ String? get errorMessage; bool get isSuccess;// الفاتورة التي تم حفظها للتو (لغرض الطباعة)
+ InvoiceEntity? get lastSavedInvoice;// [NEW] الفاتورة الأصلية (المرجعية) لعمليات المرتجع
+// تستخدم للتحقق من الكميات وتحديد نوع الخصم المالي
+ InvoiceEntity? get originalInvoice;
 /// Create a copy of SalesState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -31,16 +32,16 @@ $SalesStateCopyWith<SalesState> get copyWith => _$SalesStateCopyWithImpl<SalesSt
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SalesState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other.products, products)&&const DeepCollectionEquality().equals(other.clients, clients)&&(identical(other.invoiceType, invoiceType) || other.invoiceType == invoiceType)&&(identical(other.paymentType, paymentType) || other.paymentType == paymentType)&&const DeepCollectionEquality().equals(other.cartItems, cartItems)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.lastSavedInvoice, lastSavedInvoice) || other.lastSavedInvoice == lastSavedInvoice));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SalesState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other.products, products)&&const DeepCollectionEquality().equals(other.clients, clients)&&(identical(other.invoiceType, invoiceType) || other.invoiceType == invoiceType)&&(identical(other.paymentType, paymentType) || other.paymentType == paymentType)&&const DeepCollectionEquality().equals(other.cartItems, cartItems)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.lastSavedInvoice, lastSavedInvoice) || other.lastSavedInvoice == lastSavedInvoice)&&(identical(other.originalInvoice, originalInvoice) || other.originalInvoice == originalInvoice));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,const DeepCollectionEquality().hash(products),const DeepCollectionEquality().hash(clients),invoiceType,paymentType,const DeepCollectionEquality().hash(cartItems),subTotal,discount,tax,totalAmount,paidAmount,errorMessage,isSuccess,lastSavedInvoice);
+int get hashCode => Object.hash(runtimeType,isLoading,const DeepCollectionEquality().hash(products),const DeepCollectionEquality().hash(clients),invoiceType,paymentType,const DeepCollectionEquality().hash(cartItems),subTotal,discount,tax,totalAmount,paidAmount,errorMessage,isSuccess,lastSavedInvoice,originalInvoice);
 
 @override
 String toString() {
-  return 'SalesState(isLoading: $isLoading, products: $products, clients: $clients, invoiceType: $invoiceType, paymentType: $paymentType, cartItems: $cartItems, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount, paidAmount: $paidAmount, errorMessage: $errorMessage, isSuccess: $isSuccess, lastSavedInvoice: $lastSavedInvoice)';
+  return 'SalesState(isLoading: $isLoading, products: $products, clients: $clients, invoiceType: $invoiceType, paymentType: $paymentType, cartItems: $cartItems, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount, paidAmount: $paidAmount, errorMessage: $errorMessage, isSuccess: $isSuccess, lastSavedInvoice: $lastSavedInvoice, originalInvoice: $originalInvoice)';
 }
 
 
@@ -51,7 +52,7 @@ abstract mixin class $SalesStateCopyWith<$Res>  {
   factory $SalesStateCopyWith(SalesState value, $Res Function(SalesState) _then) = _$SalesStateCopyWithImpl;
 @useResult
 $Res call({
- bool isLoading, List<ProductEntity> products, List<ClientSupplierEntity> clients, InvoiceType invoiceType, InvoicePaymentType paymentType, List<InvoiceItemEntity> cartItems, double subTotal, double discount, double tax, double totalAmount, double paidAmount, String? errorMessage, bool isSuccess, InvoiceEntity? lastSavedInvoice
+ bool isLoading, List<ProductEntity> products, List<ClientSupplierEntity> clients, InvoiceType invoiceType, InvoicePaymentType paymentType, List<InvoiceItemEntity> cartItems, double subTotal, double discount, double tax, double totalAmount, double paidAmount, String? errorMessage, bool isSuccess, InvoiceEntity? lastSavedInvoice, InvoiceEntity? originalInvoice
 });
 
 
@@ -68,7 +69,7 @@ class _$SalesStateCopyWithImpl<$Res>
 
 /// Create a copy of SalesState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? products = null,Object? clients = null,Object? invoiceType = null,Object? paymentType = null,Object? cartItems = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,Object? paidAmount = null,Object? errorMessage = freezed,Object? isSuccess = null,Object? lastSavedInvoice = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isLoading = null,Object? products = null,Object? clients = null,Object? invoiceType = null,Object? paymentType = null,Object? cartItems = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,Object? paidAmount = null,Object? errorMessage = freezed,Object? isSuccess = null,Object? lastSavedInvoice = freezed,Object? originalInvoice = freezed,}) {
   return _then(_self.copyWith(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,products: null == products ? _self.products : products // ignore: cast_nullable_to_non_nullable
@@ -84,6 +85,7 @@ as double,paidAmount: null == paidAmount ? _self.paidAmount : paidAmount // igno
 as double,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,isSuccess: null == isSuccess ? _self.isSuccess : isSuccess // ignore: cast_nullable_to_non_nullable
 as bool,lastSavedInvoice: freezed == lastSavedInvoice ? _self.lastSavedInvoice : lastSavedInvoice // ignore: cast_nullable_to_non_nullable
+as InvoiceEntity?,originalInvoice: freezed == originalInvoice ? _self.originalInvoice : originalInvoice // ignore: cast_nullable_to_non_nullable
 as InvoiceEntity?,
   ));
 }
@@ -169,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  List<ProductEntity> products,  List<ClientSupplierEntity> clients,  InvoiceType invoiceType,  InvoicePaymentType paymentType,  List<InvoiceItemEntity> cartItems,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? errorMessage,  bool isSuccess,  InvoiceEntity? lastSavedInvoice)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLoading,  List<ProductEntity> products,  List<ClientSupplierEntity> clients,  InvoiceType invoiceType,  InvoicePaymentType paymentType,  List<InvoiceItemEntity> cartItems,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? errorMessage,  bool isSuccess,  InvoiceEntity? lastSavedInvoice,  InvoiceEntity? originalInvoice)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SalesState() when $default != null:
-return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_that.paymentType,_that.cartItems,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.errorMessage,_that.isSuccess,_that.lastSavedInvoice);case _:
+return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_that.paymentType,_that.cartItems,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.errorMessage,_that.isSuccess,_that.lastSavedInvoice,_that.originalInvoice);case _:
   return orElse();
 
 }
@@ -190,10 +192,10 @@ return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  List<ProductEntity> products,  List<ClientSupplierEntity> clients,  InvoiceType invoiceType,  InvoicePaymentType paymentType,  List<InvoiceItemEntity> cartItems,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? errorMessage,  bool isSuccess,  InvoiceEntity? lastSavedInvoice)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLoading,  List<ProductEntity> products,  List<ClientSupplierEntity> clients,  InvoiceType invoiceType,  InvoicePaymentType paymentType,  List<InvoiceItemEntity> cartItems,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? errorMessage,  bool isSuccess,  InvoiceEntity? lastSavedInvoice,  InvoiceEntity? originalInvoice)  $default,) {final _that = this;
 switch (_that) {
 case _SalesState():
-return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_that.paymentType,_that.cartItems,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.errorMessage,_that.isSuccess,_that.lastSavedInvoice);case _:
+return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_that.paymentType,_that.cartItems,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.errorMessage,_that.isSuccess,_that.lastSavedInvoice,_that.originalInvoice);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +212,10 @@ return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  List<ProductEntity> products,  List<ClientSupplierEntity> clients,  InvoiceType invoiceType,  InvoicePaymentType paymentType,  List<InvoiceItemEntity> cartItems,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? errorMessage,  bool isSuccess,  InvoiceEntity? lastSavedInvoice)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLoading,  List<ProductEntity> products,  List<ClientSupplierEntity> clients,  InvoiceType invoiceType,  InvoicePaymentType paymentType,  List<InvoiceItemEntity> cartItems,  double subTotal,  double discount,  double tax,  double totalAmount,  double paidAmount,  String? errorMessage,  bool isSuccess,  InvoiceEntity? lastSavedInvoice,  InvoiceEntity? originalInvoice)?  $default,) {final _that = this;
 switch (_that) {
 case _SalesState() when $default != null:
-return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_that.paymentType,_that.cartItems,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.errorMessage,_that.isSuccess,_that.lastSavedInvoice);case _:
+return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_that.paymentType,_that.cartItems,_that.subTotal,_that.discount,_that.tax,_that.totalAmount,_that.paidAmount,_that.errorMessage,_that.isSuccess,_that.lastSavedInvoice,_that.originalInvoice);case _:
   return null;
 
 }
@@ -225,7 +227,7 @@ return $default(_that.isLoading,_that.products,_that.clients,_that.invoiceType,_
 
 
 class _SalesState implements SalesState {
-  const _SalesState({this.isLoading = false, final  List<ProductEntity> products = const [], final  List<ClientSupplierEntity> clients = const [], this.invoiceType = InvoiceType.sales, this.paymentType = InvoicePaymentType.cash, final  List<InvoiceItemEntity> cartItems = const [], this.subTotal = 0.0, this.discount = 0.0, this.tax = 0.0, this.totalAmount = 0.0, this.paidAmount = 0.0, this.errorMessage, this.isSuccess = false, this.lastSavedInvoice}): _products = products,_clients = clients,_cartItems = cartItems;
+  const _SalesState({this.isLoading = false, final  List<ProductEntity> products = const [], final  List<ClientSupplierEntity> clients = const [], this.invoiceType = InvoiceType.sales, this.paymentType = InvoicePaymentType.cash, final  List<InvoiceItemEntity> cartItems = const [], this.subTotal = 0.0, this.discount = 0.0, this.tax = 0.0, this.totalAmount = 0.0, this.paidAmount = 0.0, this.errorMessage, this.isSuccess = false, this.lastSavedInvoice, this.originalInvoice}): _products = products,_clients = clients,_cartItems = cartItems;
   
 
 @override@JsonKey() final  bool isLoading;
@@ -248,9 +250,7 @@ class _SalesState implements SalesState {
 // بيانات العملية الحالية
 @override@JsonKey() final  InvoiceType invoiceType;
 @override@JsonKey() final  InvoicePaymentType paymentType;
-// [NEW] طريقة الدفع
  final  List<InvoiceItemEntity> _cartItems;
-// [NEW] طريقة الدفع
 @override@JsonKey() List<InvoiceItemEntity> get cartItems {
   if (_cartItems is EqualUnmodifiableListView) return _cartItems;
   // ignore: implicit_dynamic_type
@@ -266,8 +266,11 @@ class _SalesState implements SalesState {
 // حالة التحكم
 @override final  String? errorMessage;
 @override@JsonKey() final  bool isSuccess;
-// [NEW] الفاتورة التي تم حفظها للتو (لغرض الطباعة وإخفاء زر الحفظ)
+// الفاتورة التي تم حفظها للتو (لغرض الطباعة)
 @override final  InvoiceEntity? lastSavedInvoice;
+// [NEW] الفاتورة الأصلية (المرجعية) لعمليات المرتجع
+// تستخدم للتحقق من الكميات وتحديد نوع الخصم المالي
+@override final  InvoiceEntity? originalInvoice;
 
 /// Create a copy of SalesState
 /// with the given fields replaced by the non-null parameter values.
@@ -279,16 +282,16 @@ _$SalesStateCopyWith<_SalesState> get copyWith => __$SalesStateCopyWithImpl<_Sal
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SalesState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other._products, _products)&&const DeepCollectionEquality().equals(other._clients, _clients)&&(identical(other.invoiceType, invoiceType) || other.invoiceType == invoiceType)&&(identical(other.paymentType, paymentType) || other.paymentType == paymentType)&&const DeepCollectionEquality().equals(other._cartItems, _cartItems)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.lastSavedInvoice, lastSavedInvoice) || other.lastSavedInvoice == lastSavedInvoice));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SalesState&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other._products, _products)&&const DeepCollectionEquality().equals(other._clients, _clients)&&(identical(other.invoiceType, invoiceType) || other.invoiceType == invoiceType)&&(identical(other.paymentType, paymentType) || other.paymentType == paymentType)&&const DeepCollectionEquality().equals(other._cartItems, _cartItems)&&(identical(other.subTotal, subTotal) || other.subTotal == subTotal)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.tax, tax) || other.tax == tax)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.lastSavedInvoice, lastSavedInvoice) || other.lastSavedInvoice == lastSavedInvoice)&&(identical(other.originalInvoice, originalInvoice) || other.originalInvoice == originalInvoice));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLoading,const DeepCollectionEquality().hash(_products),const DeepCollectionEquality().hash(_clients),invoiceType,paymentType,const DeepCollectionEquality().hash(_cartItems),subTotal,discount,tax,totalAmount,paidAmount,errorMessage,isSuccess,lastSavedInvoice);
+int get hashCode => Object.hash(runtimeType,isLoading,const DeepCollectionEquality().hash(_products),const DeepCollectionEquality().hash(_clients),invoiceType,paymentType,const DeepCollectionEquality().hash(_cartItems),subTotal,discount,tax,totalAmount,paidAmount,errorMessage,isSuccess,lastSavedInvoice,originalInvoice);
 
 @override
 String toString() {
-  return 'SalesState(isLoading: $isLoading, products: $products, clients: $clients, invoiceType: $invoiceType, paymentType: $paymentType, cartItems: $cartItems, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount, paidAmount: $paidAmount, errorMessage: $errorMessage, isSuccess: $isSuccess, lastSavedInvoice: $lastSavedInvoice)';
+  return 'SalesState(isLoading: $isLoading, products: $products, clients: $clients, invoiceType: $invoiceType, paymentType: $paymentType, cartItems: $cartItems, subTotal: $subTotal, discount: $discount, tax: $tax, totalAmount: $totalAmount, paidAmount: $paidAmount, errorMessage: $errorMessage, isSuccess: $isSuccess, lastSavedInvoice: $lastSavedInvoice, originalInvoice: $originalInvoice)';
 }
 
 
@@ -299,7 +302,7 @@ abstract mixin class _$SalesStateCopyWith<$Res> implements $SalesStateCopyWith<$
   factory _$SalesStateCopyWith(_SalesState value, $Res Function(_SalesState) _then) = __$SalesStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isLoading, List<ProductEntity> products, List<ClientSupplierEntity> clients, InvoiceType invoiceType, InvoicePaymentType paymentType, List<InvoiceItemEntity> cartItems, double subTotal, double discount, double tax, double totalAmount, double paidAmount, String? errorMessage, bool isSuccess, InvoiceEntity? lastSavedInvoice
+ bool isLoading, List<ProductEntity> products, List<ClientSupplierEntity> clients, InvoiceType invoiceType, InvoicePaymentType paymentType, List<InvoiceItemEntity> cartItems, double subTotal, double discount, double tax, double totalAmount, double paidAmount, String? errorMessage, bool isSuccess, InvoiceEntity? lastSavedInvoice, InvoiceEntity? originalInvoice
 });
 
 
@@ -316,7 +319,7 @@ class __$SalesStateCopyWithImpl<$Res>
 
 /// Create a copy of SalesState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? products = null,Object? clients = null,Object? invoiceType = null,Object? paymentType = null,Object? cartItems = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,Object? paidAmount = null,Object? errorMessage = freezed,Object? isSuccess = null,Object? lastSavedInvoice = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isLoading = null,Object? products = null,Object? clients = null,Object? invoiceType = null,Object? paymentType = null,Object? cartItems = null,Object? subTotal = null,Object? discount = null,Object? tax = null,Object? totalAmount = null,Object? paidAmount = null,Object? errorMessage = freezed,Object? isSuccess = null,Object? lastSavedInvoice = freezed,Object? originalInvoice = freezed,}) {
   return _then(_SalesState(
 isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,products: null == products ? _self._products : products // ignore: cast_nullable_to_non_nullable
@@ -332,6 +335,7 @@ as double,paidAmount: null == paidAmount ? _self.paidAmount : paidAmount // igno
 as double,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,isSuccess: null == isSuccess ? _self.isSuccess : isSuccess // ignore: cast_nullable_to_non_nullable
 as bool,lastSavedInvoice: freezed == lastSavedInvoice ? _self.lastSavedInvoice : lastSavedInvoice // ignore: cast_nullable_to_non_nullable
+as InvoiceEntity?,originalInvoice: freezed == originalInvoice ? _self.originalInvoice : originalInvoice // ignore: cast_nullable_to_non_nullable
 as InvoiceEntity?,
   ));
 }

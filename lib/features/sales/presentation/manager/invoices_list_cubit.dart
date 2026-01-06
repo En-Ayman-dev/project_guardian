@@ -10,15 +10,13 @@ class InvoicesListCubit extends Cubit<InvoicesListState> {
   final GetInvoicesUseCase _getInvoicesUseCase;
   final DeleteInvoiceUseCase _deleteInvoiceUseCase;
 
-  InvoicesListCubit(
-    this._getInvoicesUseCase,
-    this._deleteInvoiceUseCase,
-  ) : super(const InvoicesListState());
+  InvoicesListCubit(this._getInvoicesUseCase, this._deleteInvoiceUseCase)
+    : super(const InvoicesListState());
 
-  /// تحميل الفواتير عند فتح الصفحة
+  /// تحميل الفواتير
   Future<void> loadInvoices() async {
     if (isClosed) return;
-    
+
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
     final result = await _getInvoicesUseCase();
@@ -26,72 +24,96 @@ class InvoicesListCubit extends Cubit<InvoicesListState> {
     if (isClosed) return;
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        isLoading: false, 
-        errorMessage: failure.message
-      )),
+      (failure) =>
+          emit(state.copyWith(isLoading: false, errorMessage: failure.message)),
       (invoices) {
-        // نقوم بفلترة البيانات فوراً بناءً على الفلتر الافتراضي
-        final filtered = invoices.where((inv) => inv.type == state.filterType).toList();
-        
-        emit(state.copyWith(
-          isLoading: false,
-          allInvoices: invoices,
-          filteredInvoices: filtered,
-        ));
+        emit(state.copyWith(isLoading: false, allInvoices: invoices));
+        // تطبيق الفلاتر الحالية (النوع + البحث إن وجد)
+        _applyFilter();
       },
     );
   }
 
-  /// تغيير نوع الفلتر (مبيعات / مشتريات) محلياً
-  void changeFilter(InvoiceType type) {
-    if (isClosed) return;
+  /// [NEW] البحث في الفواتير
+  void searchInvoices(String query) {
+    emit(state.copyWith(searchQuery: query));
+    _applyFilter();
+  }
 
-    final filtered = state.allInvoices.where((inv) => inv.type == type).toList();
-    
-    emit(state.copyWith(
-      filterType: type,
-      filteredInvoices: filtered,
-    ));
+  /// تغيير التبويب
+  void changeFilter(InvoiceType type) {
+    emit(state.copyWith(filterType: type));
+    _applyFilter();
+  }
+
+  /// [CORE] دالة الفلترة المركزية
+  void _applyFilter() {
+    final query = state.searchQuery.trim().toLowerCase();
+    final normalizedQuery = _normalizeNumbers(
+      query,
+    ); // التعامل مع الأرقام العربية
+
+    final filtered = state.allInvoices.where((inv) {
+      // 1. شرط النوع (التبويب)
+      final matchesType = inv.type == state.filterType;
+
+      // 2. شرط البحث (الاسم أو الرقم)
+      if (query.isEmpty) return matchesType;
+
+      final matchesName = inv.clientName.toLowerCase().contains(query);
+      final matchesNumber = inv.invoiceNumber.contains(normalizedQuery);
+
+      return matchesType && (matchesName || matchesNumber);
+    }).toList();
+
+    emit(state.copyWith(filteredInvoices: filtered));
+  }
+
+  /// تحويل الأرقام العربية إلى إنجليزية للبحث
+  String _normalizeNumbers(String input) {
+    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+    for (int i = 0; i < arabic.length; i++) {
+      input = input.replaceAll(arabic[i], english[i]);
+    }
+    return input;
   }
 
   /// حذف فاتورة
   Future<void> deleteInvoice(InvoiceEntity invoice) async {
     if (isClosed) return;
 
-    // 1. التحديث التفاؤلي (Optimistic Update) لسرعة الواجهة
-    // نحتفظ بنسخة احتياطية في حال الفشل
     final previousList = List<InvoiceEntity>.from(state.allInvoices);
-    final updatedList = state.allInvoices.where((i) => i.id != invoice.id).toList();
-    
-    // تحديث الواجهة فوراً
-    _updateFilteredList(updatedList, state.filterType);
 
-    // 2. تنفيذ الحذف في الخلفية
+    // التحديث التفاؤلي للقائمة الرئيسية
+    final updatedAllList = state.allInvoices
+        .where((i) => i.id != invoice.id)
+        .toList();
+
+    // تحديث الحالة بالقائمة الجديدة ثم إعادة تطبيق الفلتر
+    emit(state.copyWith(allInvoices: updatedAllList));
+    _applyFilter();
+
     final result = await _deleteInvoiceUseCase(invoice);
 
     if (isClosed) return;
 
     result.fold(
       (failure) {
-        // في حال الفشل، نعيد القائمة القديمة ونعرض خطأ
-        emit(state.copyWith(errorMessage: failure.message));
-        _updateFilteredList(previousList, state.filterType);
+        // تراجع عند الخطأ
+        emit(
+          state.copyWith(
+            errorMessage: failure.message,
+            allInvoices: previousList,
+          ),
+        );
+        _applyFilter();
       },
       (_) {
-        // نجاح الحذف، لا داعي لعمل شيء لأننا حدثنا الواجهة مسبقاً
-        // لكن لضمان تطابق البيانات (Stock Reversion)، يفضل إعادة التحميل
-        loadInvoices(); 
+        // نجاح، يفضل إعادة التحميل لضمان تزامن المخزون
+        loadInvoices();
       },
     );
-  }
-
-  void _updateFilteredList(List<InvoiceEntity> all, InvoiceType type) {
-    final filtered = all.where((inv) => inv.type == type).toList();
-    emit(state.copyWith(
-      allInvoices: all,
-      filteredInvoices: filtered,
-      filterType: type
-    ));
   }
 }

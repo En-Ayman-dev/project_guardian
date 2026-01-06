@@ -17,31 +17,34 @@ abstract class InvoiceModel with _$InvoiceModel {
   const factory InvoiceModel({
     @JsonKey(includeFromJson: false, includeToJson: false) String? id,
     required String invoiceNumber,
-    
+
     // --- حقول التصنيف والحالة (ERP) ---
     required InvoiceType type,
     @Default(InvoiceStatus.draft) InvoiceStatus status,
-    
-    // [NEW] طريقة الدفع (نقد / آجل)
+
+    // طريقة الدفع (نقد / آجل)
     @Default(InvoicePaymentType.cash) InvoicePaymentType paymentType,
-    
+
+    // [NEW] رقم الفاتورة الأصلية (للمرتجعات فقط)
+    String? originalInvoiceNumber,
+
     // بيانات العميل
     required String clientId,
     required String clientName,
-    
+
     // التواريخ
     @TimestampConverter() required DateTime date,
-    @TimestampConverter() DateTime? dueDate, 
+    @TimestampConverter() DateTime? dueDate,
 
     // العناصر
-    required List<InvoiceItemModel> items, 
-    
+    required List<InvoiceItemModel> items,
+
     // الحسابات المالية
     required double subTotal,
     @Default(0.0) double discount,
     @Default(0.0) double tax,
     required double totalAmount,
-    
+
     // المدفوعات والملاحظات
     @Default(0.0) double paidAmount,
     String? note,
@@ -61,7 +64,8 @@ abstract class InvoiceModel with _$InvoiceModel {
       invoiceNumber: invoiceNumber,
       type: type,
       status: status,
-      paymentType: paymentType, // [MAPPED]
+      paymentType: paymentType,
+      originalInvoiceNumber: originalInvoiceNumber, // [MAPPED]
       clientId: clientId,
       clientName: clientName,
       date: date,
@@ -82,7 +86,8 @@ abstract class InvoiceModel with _$InvoiceModel {
       invoiceNumber: entity.invoiceNumber,
       type: entity.type,
       status: entity.status,
-      paymentType: entity.paymentType, // [MAPPED]
+      paymentType: entity.paymentType,
+      originalInvoiceNumber: entity.originalInvoiceNumber, // [MAPPED]
       clientId: entity.clientId,
       clientName: entity.clientName,
       date: entity.date,

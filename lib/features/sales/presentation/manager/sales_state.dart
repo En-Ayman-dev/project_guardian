@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../../domain/entities/invoice_entity.dart'; // يحتوي على InvoiceType و InvoicePaymentType
+import '../../domain/entities/invoice_entity.dart'; 
 import '../../domain/entities/invoice_item_entity.dart';
 import '../../../inventory/domain/entities/product_entity.dart';
 import '../../../clients_suppliers/domain/entities/client_supplier_entity.dart';
@@ -17,7 +17,7 @@ abstract class SalesState with _$SalesState {
     
     // بيانات العملية الحالية
     @Default(InvoiceType.sales) InvoiceType invoiceType,
-    @Default(InvoicePaymentType.cash) InvoicePaymentType paymentType, // [NEW] طريقة الدفع
+    @Default(InvoicePaymentType.cash) InvoicePaymentType paymentType,
     @Default([]) List<InvoiceItemEntity> cartItems,
     
     // الحسابات المالية
@@ -31,7 +31,11 @@ abstract class SalesState with _$SalesState {
     String? errorMessage,
     @Default(false) bool isSuccess,
     
-    // [NEW] الفاتورة التي تم حفظها للتو (لغرض الطباعة وإخفاء زر الحفظ)
+    // الفاتورة التي تم حفظها للتو (لغرض الطباعة)
     InvoiceEntity? lastSavedInvoice, 
+
+    // [NEW] الفاتورة الأصلية (المرجعية) لعمليات المرتجع
+    // تستخدم للتحقق من الكميات وتحديد نوع الخصم المالي
+    InvoiceEntity? originalInvoice,
   }) = _SalesState;
 }

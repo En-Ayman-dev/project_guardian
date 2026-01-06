@@ -124,8 +124,9 @@ class _DashboardView extends StatelessWidget {
                       ),
                       onPressed: () {
                         context.push('/pos').then((_) {
-                          if (context.mounted)
+                          if (context.mounted) {
                             context.read<DashboardCubit>().loadStats();
+                          }
                         });
                       },
                     ),

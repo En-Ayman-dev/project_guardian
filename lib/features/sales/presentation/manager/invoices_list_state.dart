@@ -7,9 +7,10 @@ part 'invoices_list_state.freezed.dart';
 abstract class InvoicesListState with _$InvoicesListState {
   const factory InvoicesListState({
     @Default(false) bool isLoading,
-    @Default([]) List<InvoiceEntity> allInvoices, // كل الفواتير المحملة
-    @Default([]) List<InvoiceEntity> filteredInvoices, // الفواتير المعروضة حالياً
-    @Default(InvoiceType.sales) InvoiceType filterType, // نوع الفلتر الحالي
+    @Default([]) List<InvoiceEntity> allInvoices, // المصدر الرئيسي
+    @Default([]) List<InvoiceEntity> filteredInvoices, // المعروض
+    @Default(InvoiceType.sales) InvoiceType filterType, // التبويب
+    @Default('') String searchQuery, // [NEW] نص البحث
     String? errorMessage,
   }) = _InvoicesListState;
 }

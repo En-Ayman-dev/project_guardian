@@ -16,10 +16,10 @@ enum InvoiceStatus {
   canceled, // ملغاة
 }
 
-/// [NEW] نوع طريقة الدفع
+/// نوع طريقة الدفع
 enum InvoicePaymentType {
-  cash, // نقد (يؤثر على الصندوق ولا يؤثر على رصيد العميل إلا بالصفر)
-  credit, // آجل (يؤثر على رصيد العميل/المورد)
+  cash, // نقد
+  credit, // آجل
 }
 
 /// حالة الدفع للفاتورة
@@ -31,11 +31,14 @@ enum PaymentStatus {
 
 class InvoiceEntity extends Equatable {
   final String id;
-  final String invoiceNumber; // سيصبح رقماً تسلسلياً (مثلاً: 1001)
+  final String invoiceNumber;
 
   final InvoiceType type;
   final InvoiceStatus status;
-  final InvoicePaymentType paymentType; // [NEW] طريقة الدفع
+  final InvoicePaymentType paymentType;
+
+  // [NEW] رقم الفاتورة الأصلية (خاص بالمرتجعات فقط)
+  final String? originalInvoiceNumber;
 
   final String clientId;
   final String clientName;
@@ -57,11 +60,8 @@ class InvoiceEntity extends Equatable {
   double get remainingAmount => totalAmount - paidAmount;
 
   PaymentStatus get paymentStatus {
-    // في حالة الدفع النقدي، نعتبرها مدفوعة دائماً عند الإنشاء
     if (paymentType == InvoicePaymentType.cash) return PaymentStatus.paid;
-
-    if (paidAmount >= totalAmount - 0.01)
-      return PaymentStatus.paid; // سماحية بسيطة في الكسور
+    if (paidAmount >= totalAmount - 0.01) return PaymentStatus.paid;
     if (paidAmount > 0) return PaymentStatus.partial;
     return PaymentStatus.unpaid;
   }
@@ -76,7 +76,8 @@ class InvoiceEntity extends Equatable {
     required this.invoiceNumber,
     required this.type,
     this.status = InvoiceStatus.draft,
-    this.paymentType = InvoicePaymentType.cash, // الافتراضي نقد
+    this.paymentType = InvoicePaymentType.cash,
+    this.originalInvoiceNumber, // [NEW] إضافة للحقل في البناء
     required this.clientId,
     required this.clientName,
     required this.date,
@@ -96,7 +97,8 @@ class InvoiceEntity extends Equatable {
     invoiceNumber,
     type,
     status,
-    paymentType, // إضافة للحقل
+    paymentType,
+    originalInvoiceNumber, // [NEW] للمقارنة
     clientId,
     clientName,
     date,

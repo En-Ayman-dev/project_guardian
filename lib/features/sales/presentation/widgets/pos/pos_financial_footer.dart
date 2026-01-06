@@ -11,6 +11,7 @@ class PosFinancialFooter extends StatelessWidget {
   final bool isReturn;
   final TextEditingController discountCtrl;
   final TextEditingController paidCtrl;
+  final TextEditingController noteCtrl;
   final Function(double) onDiscountChanged;
   final Function(double) onPaidChanged;
   final VoidCallback? onSubmit;
@@ -22,6 +23,7 @@ class PosFinancialFooter extends StatelessWidget {
     required this.isReturn,
     required this.discountCtrl,
     required this.paidCtrl,
+    required this.noteCtrl,
     required this.onDiscountChanged,
     required this.onPaidChanged,
     this.onSubmit,
@@ -38,7 +40,7 @@ class PosFinancialFooter extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.2),
+            color: Colors.grey.withOpacity(0.2),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -47,49 +49,78 @@ class PosFinancialFooter extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. Payment Type Selection (Cash / Credit)
+          // 1. Payment Type Selection
           if (!isSaved) ...[
             _buildPaymentTypeSelector(context, color),
             const SizedBox(height: 16),
           ],
 
-          // 2. Financial Inputs
+          // 2. Financial Inputs & Notes (تم إعادة توزيعها)
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- العمود الأيمن: الملخص + الملاحظات الكبيرة ---
               Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: 8),
                     _buildSummaryRow('المجموع الفرعي', state.subTotal),
-                    // الضريبة ملغاة
+                    
+                    const SizedBox(height: 16), // مسافة فاصلة
+                    
+                    // [NEW] حقل الملاحظات الكبير
+                    TextField(
+                      controller: noteCtrl,
+                      enabled: !isSaved,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 3, // حد أقصى للارتفاع (يمكن زيادته أو جعله null)
+                      minLines: 2, // ارتفاع مبدئي (سطرين)
+                      decoration: InputDecoration(
+                        labelText: 'ملاحظات الفاتورة',
+                        alignLabelWithHint: true, // لمحاذاة النص للأعلى
+                        hintText: 'اكتب تفاصيل إضافية هنا...',
+                        prefixIcon: const Icon(Icons.note_alt_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 12
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 24),
+              
+              const SizedBox(width: 24), // مسافة بين العمودين
+
+              // --- العمود الأيسر: الخصم والمدفوع ---
               Expanded(
                 child: Column(
                   children: [
                     TextField(
                       controller: discountCtrl,
-                      enabled: !isSaved, // تعطيل بعد الحفظ
+                      enabled: !isSaved,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'خصم إضافي',
+                        prefixIcon: Icon(Icons.discount_outlined),
                         isDense: true,
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (val) =>
                           onDiscountChanged(PosUtils.parseAmount(val)),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: paidCtrl,
-                      // تعطيل إذا تم الحفظ أو إذا كان الدفع نقداً (لأنه تلقائي)
-                      enabled:
-                          !isSaved &&
+                      enabled: !isSaved &&
                           state.paymentType == InvoicePaymentType.credit,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'المبلغ المدفوع',
+                        prefixIcon: Icon(Icons.attach_money),
                         isDense: true,
                         border: OutlineInputBorder(),
                       ),
@@ -141,7 +172,6 @@ class PosFinancialFooter extends StatelessWidget {
             onSelectionChanged: (Set<InvoicePaymentType> newSelection) {
               context.read<SalesCubit>().setPaymentType(newSelection.first);
 
-              // تحديث حقل النص ليعكس التغيير التلقائي في القيمة
               if (newSelection.first == InvoicePaymentType.cash) {
                 paidCtrl.text = state.totalAmount.toStringAsFixed(2);
               } else {
@@ -219,7 +249,6 @@ class PosFinancialFooter extends StatelessWidget {
   Widget _buildPostSaveActions(BuildContext context, Color color) {
     return Column(
       children: [
-        // عرض رقم الفاتورة المحفوظة
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -248,9 +277,9 @@ class PosFinancialFooter extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () {
-                  // Reset form for new invoice
                   discountCtrl.clear();
                   paidCtrl.clear();
+                  noteCtrl.clear();
                   context.read<SalesCubit>().resetAfterSuccess();
                 },
                 icon: const Icon(Icons.add),
@@ -265,13 +294,12 @@ class PosFinancialFooter extends StatelessWidget {
               flex: 2,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Implement Printing Logic Here
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("جاري الطباعة...")),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[800], // لون داكن للطباعة
+                  backgroundColor: Colors.grey[800],
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),

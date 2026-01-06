@@ -45,8 +45,9 @@ class _PosProductEntryState extends State<PosProductEntry> {
 
           final productSearchField = Autocomplete<ProductEntity>(
             optionsBuilder: (textEditingValue) {
-              if (textEditingValue.text.isEmpty)
+              if (textEditingValue.text.isEmpty) {
                 return const Iterable<ProductEntity>.empty();
+              }
               return widget.products.where(
                 (p) =>
                     p.name.toLowerCase().contains(

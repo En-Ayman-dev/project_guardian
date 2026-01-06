@@ -6,6 +6,8 @@ import '../models/invoice_model.dart';
 
 abstract class SalesRemoteDataSource {
   Future<List<InvoiceModel>> getInvoices();
+  // [NEW] تعريف الدالة في الواجهة
+  Future<InvoiceModel> getInvoiceByNumber(String invoiceNumber);
   Future<void> addInvoice(InvoiceModel invoice);
   Future<void> deleteInvoice(InvoiceModel invoice);
   Future<void> updateInvoice(InvoiceModel invoice);
@@ -38,13 +40,35 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
     }
   }
 
+  // [NEW] تنفيذ دالة البحث
+  @override
+  Future<InvoiceModel> getInvoiceByNumber(String invoiceNumber) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_invoicesCollection)
+          .where('invoiceNumber', isEqualTo: invoiceNumber)
+          .limit(1) // نكتفي بأول نتيجة لأن الرقم فريد
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        throw ServerFailure("الفاتورة رقم $invoiceNumber غير موجودة");
+      }
+
+      return InvoiceModel.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      // إذا كان الخطأ هو ServerFailure (الذي رميناه نحن)، نعيد رميه كما هو
+      if (e is ServerFailure) rethrow;
+      throw ServerFailure(e.toString());
+    }
+  }
+
   @override
   Future<void> addInvoice(InvoiceModel invoice) async {
     try {
       await _firestore.runTransaction((transaction) async {
-        // --- PHASE 1: READ EVERYTHING FIRST (CRITICAL FOR FIRESTORE) ---
+        // --- PHASE 1: READ EVERYTHING FIRST ---
 
-        // 1. Read Counter (للحصول على الرقم)
+        // 1. Read Counter
         final counterRef = _firestore
             .collection(_countersCollection)
             .doc(_countersDoc);
@@ -106,7 +130,7 @@ class SalesRemoteDataSourceImpl implements SalesRemoteDataSource {
           }
         }
 
-        // --- PHASE 3: WRITE EVERYTHING LAST ---
+        // --- PHASE 3: WRITE ---
 
         // 1. Update Counter
         if (counterSnapshot.exists) {
