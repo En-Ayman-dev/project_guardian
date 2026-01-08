@@ -30,6 +30,7 @@ class _ClientsSuppliersView extends StatefulWidget {
 
 class _ClientsSuppliersViewState extends State<_ClientsSuppliersView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController(); // [NEW] Search Controller
 
   @override
   void initState() {
@@ -40,6 +41,10 @@ class _ClientsSuppliersViewState extends State<_ClientsSuppliersView> with Singl
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
+    
+    // [NEW] تنظيف البحث عند تغيير التبويب
+    _searchController.clear(); 
+    
     final type = _tabController.index == 0 ? ClientType.client : ClientType.supplier;
     context.read<ClientSupplierCubit>().getList(type);
   }
@@ -48,6 +53,7 @@ class _ClientsSuppliersViewState extends State<_ClientsSuppliersView> with Singl
   void dispose() {
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
+    _searchController.dispose(); // [NEW]
     super.dispose();
   }
 
@@ -75,25 +81,74 @@ class _ClientsSuppliersViewState extends State<_ClientsSuppliersView> with Singl
         },
         child: const Icon(Icons.add),
       ),
-      body: BlocBuilder<ClientSupplierCubit, ClientSupplierState>(
-        builder: (context, state) {
-          return state.maybeWhen(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (msg) => Center(child: Text(msg, style: const TextStyle(color: Colors.red))),
-            success: (list) {
-              if (list.isEmpty) {
-                return const Center(child: Text('No Data Found'));
-              }
-              return ListView.builder(
-                itemCount: list.length,
-                itemBuilder: (context, index) {
-                  return ClientSupplierTile(entity: list[index]);
-                },
-              );
-            },
-            orElse: () => const SizedBox.shrink(),
-          );
-        },
+      body: Column(
+        children: [
+          // [NEW] Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name or phone...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    context.read<ClientSupplierCubit>().search('');
+                    FocusScope.of(context).unfocus();
+                  },
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              onChanged: (value) {
+                // استدعاء الفلترة في الـ Cubit
+                context.read<ClientSupplierCubit>().search(value);
+              },
+            ),
+          ),
+
+          Expanded(
+            child: BlocBuilder<ClientSupplierCubit, ClientSupplierState>(
+              builder: (context, state) {
+                return state.maybeWhen(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (msg) => Center(child: Text(msg, style: const TextStyle(color: Colors.red))),
+                  success: (list) {
+                    if (list.isEmpty) {
+                      return const Center(child: Text('No Data Found'));
+                    }
+                    return ListView.builder(
+                      itemCount: list.length,
+                      itemBuilder: (context, index) {
+                        final entity = list[index];
+                        // [NEW] Wrap Tile with GestureDetector to handle navigation
+                        return GestureDetector(
+                          onTap: () async {
+                            // الانتقال لصفحة التفاصيل الجديدة
+                            await context.push('/clients-suppliers/details', extra: entity);
+                            
+                            // عند العودة، نعيد تحديث القائمة لضمان ظهور أي تعديلات
+                            if (mounted) {
+                              final type = _tabController.index == 0 ? ClientType.client : ClientType.supplier;
+                              context.read<ClientSupplierCubit>().getList(type);
+                            }
+                          },
+                          child: ClientSupplierTile(entity: entity),
+                        );
+                      },
+                    );
+                  },
+                  orElse: () => const SizedBox.shrink(),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

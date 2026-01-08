@@ -11,7 +11,8 @@ class ClientSupplierCubit extends Cubit<ClientSupplierState> {
   final GetClientsSuppliersUseCase _getUseCase;
   final AddClientSupplierUseCase _addUseCase;
 
-  // سنحتاج للاحتفاظ بنوع القائمة الحالية (عملاء أم موردين) لإعادة التحديث
+  // الحفاظ على القائمة الأصلية للفلترة المحلية
+  List<ClientSupplierEntity> _originalList = [];
   ClientType _currentType = ClientType.client;
 
   ClientSupplierCubit(
@@ -27,7 +28,10 @@ class ClientSupplierCubit extends Cubit<ClientSupplierState> {
     
     result.fold(
       (failure) => emit(ClientSupplierState.error(failure.message)),
-      (list) => emit(ClientSupplierState.success(list)),
+      (list) {
+        _originalList = list; // حفظ النسخة الأصلية
+        emit(ClientSupplierState.success(list));
+      },
     );
   }
 
@@ -44,5 +48,25 @@ class ClientSupplierCubit extends Cubit<ClientSupplierState> {
         getList(_currentType); 
       },
     );
+  }
+
+  // --- دالة البحث الجديدة ---
+  void search(String query) {
+    // إذا كان نص البحث فارغاً، نعيد القائمة الأصلية كاملة
+    if (query.isEmpty) {
+      emit(ClientSupplierState.success(_originalList));
+      return;
+    }
+
+    final lowerQuery = query.toLowerCase();
+    
+    // فلترة القائمة بناءً على الاسم أو رقم الهاتف
+    final filteredList = _originalList.where((element) {
+      final nameMatches = element.name.toLowerCase().contains(lowerQuery);
+      final phoneMatches = element.phone.contains(query);
+      return nameMatches || phoneMatches;
+    }).toList();
+
+    emit(ClientSupplierState.success(filteredList));
   }
 }

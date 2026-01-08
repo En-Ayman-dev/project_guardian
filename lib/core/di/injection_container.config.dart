@@ -15,6 +15,14 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
+import '../../features/accounting/data/datasources/accounting_remote_data_source.dart'
+    as _i718;
+import '../../features/accounting/data/repositories/accounting_repository_impl.dart'
+    as _i930;
+import '../../features/accounting/domain/repositories/accounting_repository.dart'
+    as _i330;
+import '../../features/accounting/presentation/manager/accounting_cubit.dart'
+    as _i165;
 import '../../features/auth/data/datasources/auth_remote_data_source.dart'
     as _i107;
 import '../../features/auth/data/repositories/auth_repository_impl.dart'
@@ -128,6 +136,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i974.FirebaseFirestore>(),
       ),
     );
+    gh.lazySingleton<_i718.AccountingRemoteDataSource>(
+      () => _i718.AccountingRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
+    );
     gh.lazySingleton<_i37.SalesRemoteDataSource>(
       () => _i37.SalesRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
     );
@@ -153,6 +164,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i422.InventoryRepository>(
       () =>
           _i572.InventoryRepositoryImpl(gh<_i248.InventoryRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i330.AccountingRepository>(
+      () => _i930.AccountingRepositoryImpl(
+        gh<_i718.AccountingRemoteDataSource>(),
+      ),
     );
     gh.lazySingleton<_i811.AddCategoryUseCase>(
       () => _i811.AddCategoryUseCase(gh<_i422.InventoryRepository>()),
@@ -258,6 +274,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i163.GetInvoicesUseCase>(),
         gh<_i781.SearchInvoicesUseCase>(),
         gh<_i661.DeleteInvoiceUseCase>(),
+      ),
+    );
+    gh.factory<_i165.AccountingCubit>(
+      () => _i165.AccountingCubit(
+        gh<_i330.AccountingRepository>(),
+        gh<_i878.GetInvoiceByNumberUseCase>(),
       ),
     );
     gh.factory<_i740.SalesCubit>(
