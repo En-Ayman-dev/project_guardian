@@ -59,7 +59,7 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
   final TextEditingController _paidCtrl = TextEditingController();
   final TextEditingController _noteCtrl = TextEditingController();
 
-  // [NEW] كنترولر للبحث عن الفاتورة الأصلية (للتعبئة عند التعديل)
+  // كنترولر للبحث عن الفاتورة الأصلية
   final TextEditingController _originalInvoiceSearchCtrl =
       TextEditingController();
 
@@ -85,7 +85,6 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
     _paidCtrl.text = inv.paidAmount > 0 ? inv.paidAmount.toString() : '';
     _noteCtrl.text = inv.note ?? '';
 
-    // [NEW] تعبئة رقم الفاتورة الأصلية إذا وجد
     if (inv.originalInvoiceNumber != null) {
       _originalInvoiceSearchCtrl.text = inv.originalInvoiceNumber!;
     }
@@ -106,7 +105,7 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
     _discountCtrl.dispose();
     _paidCtrl.dispose();
     _noteCtrl.dispose();
-    _originalInvoiceSearchCtrl.dispose(); // [NEW] تنظيف
+    _originalInvoiceSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -143,13 +142,10 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
 
           setState(() {
             _selectedClient = client;
-            // إذا لم يكن هناك ملاحظة مكتوبة مسبقاً، نضع الملاحظة الافتراضية
             if (_noteCtrl.text.isEmpty) {
               _noteCtrl.text =
                   "مرتجع من الفاتورة #${state.originalInvoice!.invoiceNumber}";
             }
-            // في حالة التعديل، لا نصفر الأرقام المالية لأنها محملة بالفعل
-            // نصفرها فقط إذا كنا في وضع إنشاء مرتجع جديد (ليس تعديل)
             if (!isEdit) {
               _paidCtrl.text = "0";
               _discountCtrl.text = "0";
@@ -204,6 +200,9 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
         }
 
         return Scaffold(
+          // [FIX] منع تغيير حجم الواجهة عند ظهور الكيبورد لتجنب Overflow
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.grey[50], // خلفية فاتحة لجمالية التصميم
           appBar: PosAppBar(
             invoiceType: state.invoiceType,
             isEdit: isEdit,
@@ -213,53 +212,73 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
               _resetForm(context);
             },
           ),
-          body: Column(
-            children: [
-              PosClientSection(
-                invoiceType: state.invoiceType,
-                clients: state.clients,
-                selectedClient: _selectedClient,
-                invoiceNumber: widget.invoiceToEdit?.invoiceNumber,
-                invoiceDate: widget.invoiceToEdit?.date ?? DateTime.now(),
-                onClientSelected: (selection) =>
-                    setState(() => _selectedClient = selection),
-                searchController:
-                    _originalInvoiceSearchCtrl, // [NEW] تمرير الكنترولر
-              ),
-              const Divider(height: 1),
+          body: SafeArea(
+            child: Column(
+              children: [
+                // القسم العلوي (العميل والمنتج)
+                // نضعه في SingleChildScrollView للسماح بالتمرير إذا كانت الشاشة صغيرة جداً
+                // لكن نحدد ارتفاعاً أقصى باستخدام Constraints لضمان بقاء الجدول مرئياً
+                Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 280,
+                  ), // حدد ارتفاعاً مناسباً للأقسام العلوية
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PosClientSection(
+                          invoiceType: state.invoiceType,
+                          clients: state.clients,
+                          selectedClient: _selectedClient,
+                          invoiceNumber: widget.invoiceToEdit?.invoiceNumber,
+                          invoiceDate:
+                              widget.invoiceToEdit?.date ?? DateTime.now(),
+                          onClientSelected: (selection) =>
+                              setState(() => _selectedClient = selection),
+                          searchController: _originalInvoiceSearchCtrl,
+                        ),
 
-              PosProductEntry(
-                invoiceType: state.invoiceType,
-                products: state.products,
-              ),
+                        PosProductEntry(
+                          invoiceType: state.invoiceType,
+                          products: state.products,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-              const Divider(height: 1),
+                // الجدول يأخذ المساحة المتبقية
+                Expanded(child: PosItemsTable(items: state.cartItems)),
 
-              Expanded(child: PosItemsTable(items: state.cartItems)),
-
-              PosFinancialFooter(
-                state: state,
-                isEdit: isEdit,
-                isReturn: isReturn,
-                discountCtrl: _discountCtrl,
-                paidCtrl: _paidCtrl,
-                noteCtrl: _noteCtrl,
-                onDiscountChanged: (val) =>
-                    context.read<SalesCubit>().setDiscount(val),
-                onPaidChanged: (val) =>
-                    context.read<SalesCubit>().setPaidAmount(val),
-                onSubmit:
-                    (state.cartItems.isNotEmpty && _selectedClient != null)
-                    ? () {
-                        context.read<SalesCubit>().submitInvoice(
-                          clientId: _selectedClient!.id,
-                          clientName: _selectedClient!.name,
-                          note: _noteCtrl.text,
-                        );
-                      }
-                    : null,
-              ),
-            ],
+                // الفوتر المالي
+                // [FIX] وضعنا الفوتر في الأسفل مباشرة
+                PosFinancialFooter(
+                  state: state,
+                  isEdit: isEdit,
+                  isReturn: isReturn,
+                  discountCtrl: _discountCtrl,
+                  paidCtrl: _paidCtrl,
+                  noteCtrl: _noteCtrl,
+                  onDiscountChanged: (val) =>
+                      context.read<SalesCubit>().setDiscount(val),
+                  onPaidChanged: (val) =>
+                      context.read<SalesCubit>().setPaidAmount(val),
+                  // [FIX] تمرير دالة تغيير النوع
+                  onPaymentTypeChanged: (type) =>
+                      context.read<SalesCubit>().setPaymentType(type),
+                  onSubmit:
+                      (state.cartItems.isNotEmpty && _selectedClient != null)
+                      ? () {
+                          context.read<SalesCubit>().submitInvoice(
+                            clientId: _selectedClient!.id,
+                            clientName: _selectedClient!.name,
+                            note: _noteCtrl.text,
+                          );
+                        }
+                      : null,
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -272,7 +291,7 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
       _discountCtrl.clear();
       _paidCtrl.clear();
       _noteCtrl.clear();
-      _originalInvoiceSearchCtrl.clear(); // [NEW]
+      _originalInvoiceSearchCtrl.clear();
     });
     context.read<SalesCubit>().resetAfterSuccess();
   }

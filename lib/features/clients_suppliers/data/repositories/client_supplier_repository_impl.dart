@@ -1,3 +1,6 @@
+// [phase_3] correction - File 4/4
+// file: lib/features/clients_suppliers/data/repositories/client_supplier_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/errors/failures.dart';
@@ -68,5 +71,20 @@ class ClientSupplierRepositoryImpl implements ClientSupplierRepository {
     // يمكن تنفيذ البحث محلياً أو عبر Firestore queries معقدة
     // للتبسيط الآن، سنقوم بإرجاع قائمة فارغة حتى ننفذ المنطق لاحقاً
     return const Right([]); 
+  }
+
+  // [FIX] تصحيح تنفيذ الدالة لاستخدام DataSource بدلاً من Firestore مباشرة
+  @override
+  Future<Either<Failure, ClientSupplierEntity>> getClientById(String id) async {
+    try {
+      // استخدام DataSource بدلاً من firestore المباشر
+      final model = await _remoteDataSource.getClientById(id);
+      // تحويل الموديل إلى Entity
+      return Right(model.toEntity());
+    } on ServerFailure catch (e) {
+      return Left(e);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
   }
 }

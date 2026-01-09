@@ -1,12 +1,17 @@
+// [phase_3] correction - Full File
+// file: lib/features/inventory/data/repositories/inventory_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/unit_entity.dart';
 import '../../domain/repositories/inventory_repository.dart';
 import '../datasources/inventory_remote_data_source.dart';
 import '../models/category_model.dart';
 import '../models/unit_model.dart';
+import '../models/product_model.dart'; // [FIX] تمت إضافة الاستيراد الناقص
 
 @LazySingleton(as: InventoryRepository)
 class InventoryRepositoryImpl implements InventoryRepository {
@@ -95,6 +100,19 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return const Right(null);
     } catch (e) {
       return const Left(ServerFailure('Failed to update unit'));
+    }
+  }
+
+  // --- Products [FIXED] ---
+  @override
+  Future<Either<Failure, List<ProductEntity>>> getProducts() async {
+    try {
+      final remoteData = await _remoteDataSource.getAllProducts();
+
+      // [FIX] استخدام map + toEntity بدلاً من cast لحل مشكلة النوع
+      return Right(remoteData.map((e) => e.toEntity()).toList());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
     }
   }
 }

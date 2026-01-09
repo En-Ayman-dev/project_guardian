@@ -1,3 +1,6 @@
+// [phase_3] correction - File 3/4
+// file: lib/features/clients_suppliers/data/datasources/client_supplier_remote_data_source.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:injectable/injectable.dart';
 import '../../../../core/errors/failures.dart';
@@ -9,6 +12,8 @@ abstract class ClientSupplierRemoteDataSource {
   Future<void> addClientSupplier(ClientSupplierModel model);
   Future<void> updateClientSupplier(ClientSupplierModel model);
   Future<void> deleteClientSupplier(String id);
+  // [FIX] إضافة الدالة الناقصة
+  Future<ClientSupplierModel> getClientById(String id);
 }
 
 @LazySingleton(as: ClientSupplierRemoteDataSource)
@@ -41,7 +46,7 @@ class ClientSupplierRemoteDataSourceImpl implements ClientSupplierRemoteDataSour
   @override
   Future<void> addClientSupplier(ClientSupplierModel model) async {
     try {
-      // نستخدمtoJson لحفظ البيانات، Firestore سينشئ ID تلقائي
+      // نستخدم toJson لحفظ البيانات، Firestore سينشئ ID تلقائي
       await _firestore.collection(_collectionName).add(model.toJson());
     } catch (e) {
       throw ServerFailure(e.toString());
@@ -64,6 +69,21 @@ class ClientSupplierRemoteDataSourceImpl implements ClientSupplierRemoteDataSour
   Future<void> deleteClientSupplier(String id) async {
     try {
       await _firestore.collection(_collectionName).doc(id).delete();
+    } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
+
+  // [FIX] تنفيذ الدالة الناقصة
+  @override
+  Future<ClientSupplierModel> getClientById(String id) async {
+    try {
+      final doc = await _firestore.collection(_collectionName).doc(id).get();
+      if (doc.exists) {
+        return ClientSupplierModel.fromFirestore(doc);
+      } else {
+        throw const ServerFailure("Client not found");
+      }
     } catch (e) {
       throw ServerFailure(e.toString());
     }

@@ -1,3 +1,6 @@
+// [phase_2] modification
+// file: lib/config/routes/app_router.dart
+
 import 'package:go_router/go_router.dart';
 import '../../core/di/injection_container.dart';
 import '../../core/utils/go_router_refresh_stream.dart';
@@ -14,11 +17,15 @@ import '../../features/inventory/domain/entities/product_entity.dart';
 import '../../features/inventory/presentation/pages/inventory_settings_page.dart';
 import '../../features/inventory/presentation/pages/product_form_page.dart';
 import '../../features/inventory/presentation/pages/products_page.dart';
+import '../../features/reports/presentation/pages/daily_report_page.dart';
+import '../../features/reports/presentation/pages/general_balances_page.dart';
+import '../../features/reports/presentation/pages/reports_page.dart';
 import '../../features/sales/presentation/pages/pos_page.dart';
 import '../../features/sales/presentation/pages/invoices_list_page.dart';
-// استيراد صفحات المحاسبة
 import '../../features/accounting/presentation/pages/voucher_form_page.dart';
-import '../../features/accounting/presentation/pages/vouchers_list_page.dart'; // [NEW]
+import '../../features/accounting/presentation/pages/vouchers_list_page.dart';
+// [NEW] استيراد صفحة التقارير
+import '../../features/reports/presentation/pages/account_statement_page.dart';
 
 final goRouter = GoRouter(
   initialLocation: '/home',
@@ -52,11 +59,46 @@ final goRouter = GoRouter(
     ),
     GoRoute(path: '/pos', builder: (context, state) => const PosPage()),
 
-    // --- المحاسبة والسندات [NEW] ---
+    // --- المحاسبة والسندات ---
     GoRoute(
       path: '/vouchers',
       builder: (context, state) => const VouchersListPage(),
     ),
+
+    // GoRoute(
+    //   path: '/reports',
+    //   builder: (context, state) =>
+    //       const ReportsPage(), // [NEW] الصفحة الرئيسية للتقارير
+    // ),
+    // GoRoute(
+    //   path: '/reports/statement',
+    //   builder: (context, state) {
+    //     final client = state.extra as ClientSupplierEntity;
+    //     return AccountStatementPage(clientSupplier: client);
+    //   },
+    // ),
+
+    GoRoute(
+      path: '/reports',
+      builder: (context, state) => const ReportsPage(),
+    ),
+    // [NEW] مسار تقرير الأرصدة
+    GoRoute(
+      path: '/reports/general-balances',
+      builder: (context, state) => const GeneralBalancesPage(),
+    ),
+        GoRoute(
+      path: '/reports/statement',
+      builder: (context, state) {
+        final client = state.extra as ClientSupplierEntity;
+        return AccountStatementPage(clientSupplier: client);
+      },
+    ),
+    GoRoute(
+        path: '/reports/daily-sales',
+        builder: (context, state) => const DailyReportPage(),
+      ),
+
 
     // --- العملاء والموردين ---
     GoRoute(
@@ -84,29 +126,30 @@ final goRouter = GoRouter(
             return ClientSupplierDetailsPage(entity: entity);
           },
         ),
-       GoRoute(
+        GoRoute(
           path: 'voucher',
           builder: (context, state) {
             // الحالة 1: تعديل سند موجود
             if (state.extra is VoucherEntity) {
               final voucher = state.extra as VoucherEntity;
-              // نقوم بإنشاء كيان عميل "مؤقت" فقط لغرض العرض في الواجهة (الاسم والنوع)
-              // لأن صفحة الفورم تتطلب كائن عميل
               final mockClient = ClientSupplierEntity(
                 id: voucher.clientSupplierId,
                 name: voucher.clientSupplierName,
-                // استنتاج النوع من نوع السند
-                type: voucher.type == VoucherType.receipt ? ClientType.client : ClientType.supplier,
-                phone: '', // بيانات غير ضرورية للتعديل
+                type: voucher.type == VoucherType.receipt
+                    ? ClientType.client
+                    : ClientType.supplier,
+                phone: '',
                 email: '',
                 address: '',
                 taxNumber: '',
                 createdAt: DateTime.now(),
                 balance: 0.0,
               );
-              return VoucherFormPage(clientSupplier: mockClient, voucherToEdit: voucher);
+              return VoucherFormPage(
+                clientSupplier: mockClient,
+                voucherToEdit: voucher,
+              );
             }
-            
             // الحالة 2: إنشاء سند جديد
             final entity = state.extra as ClientSupplierEntity;
             return VoucherFormPage(clientSupplier: entity);

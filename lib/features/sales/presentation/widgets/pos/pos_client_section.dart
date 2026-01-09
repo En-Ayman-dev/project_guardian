@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // نحتاج Bloc لاستدعاء البحث
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../clients_suppliers/domain/entities/client_supplier_entity.dart';
-// [FIXED] تصحيح المسار بإضافة ../ للوصول إلى مجلد domain
 import '../../../domain/entities/invoice_entity.dart';
-import '../../manager/sales_cubit.dart'; // لاستدعاء searchForInvoice
+import '../../manager/sales_cubit.dart';
 import 'pos_utils.dart';
 
 class PosClientSection extends StatefulWidget {
@@ -14,9 +13,7 @@ class PosClientSection extends StatefulWidget {
   final String? invoiceNumber;
   final DateTime invoiceDate;
   final Function(ClientSupplierEntity) onClientSelected;
-  
-  // نستقبل الكنترولر من الصفحة الأم للتحكم بالنص (تعبئة تلقائية)
-  final TextEditingController? searchController; 
+  final TextEditingController? searchController;
 
   const PosClientSection({
     super.key,
@@ -26,7 +23,7 @@ class PosClientSection extends StatefulWidget {
     this.invoiceNumber,
     required this.invoiceDate,
     required this.onClientSelected,
-    this.searchController, 
+    this.searchController,
   });
 
   @override
@@ -34,7 +31,6 @@ class PosClientSection extends StatefulWidget {
 }
 
 class _PosClientSectionState extends State<PosClientSection> {
-  // استخدام الكنترولر الممرر أو إنشاء واحد جديد
   late TextEditingController _invoiceSearchCtrl;
 
   @override
@@ -45,7 +41,6 @@ class _PosClientSectionState extends State<PosClientSection> {
 
   @override
   void dispose() {
-    // إذا تم تمرير الكنترولر من الخارج، لا نقوم بحذفه هنا (المسؤولية على الصفحة الأم)
     if (widget.searchController == null) {
       _invoiceSearchCtrl.dispose();
     }
@@ -54,38 +49,78 @@ class _PosClientSectionState extends State<PosClientSection> {
 
   @override
   Widget build(BuildContext context) {
-    final color = PosUtils.getThemeColor(widget.invoiceType);
-    final isReturn = widget.invoiceType == InvoiceType.salesReturn || 
+    final themeColor = PosUtils.getThemeColor(widget.invoiceType);
+    final isReturn = widget.invoiceType == InvoiceType.salesReturn ||
                      widget.invoiceType == InvoiceType.purchaseReturn;
 
     return Container(
-      padding: const EdgeInsets.all(12),
-      // [FIXED] استبدال withOpacity بـ withValues لتجنب التحذير
-      color: color.withValues(alpha: 0.05),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: isReturn 
-                ? _buildReturnSearchField(context) 
-                : _buildClientSearchField(),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 1,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'Date: ${DateFormat('yyyy-MM-dd').format(widget.invoiceDate)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Ref: #${widget.invoiceNumber ?? "AUTO"}',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        children: [
+          // الصف العلوي: التاريخ ورقم المرجع
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildInfoChip(
+                icon: Icons.receipt_long_rounded,
+                label: '#${widget.invoiceNumber ?? "AUTO"}',
+                color: Colors.grey.shade700,
+              ),
+              _buildInfoChip(
+                icon: Icons.calendar_today_rounded,
+                label: DateFormat('yyyy-MM-dd').format(widget.invoiceDate),
+                color: themeColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // حقل البحث الرئيسي
+          Row(
+            children: [
+              Expanded(
+                child: isReturn
+                    ? _buildReturnSearchField(context, themeColor)
+                    : _buildClientSearchField(themeColor),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
             ),
           ),
         ],
@@ -93,49 +128,72 @@ class _PosClientSectionState extends State<PosClientSection> {
     );
   }
 
-  Widget _buildReturnSearchField(BuildContext context) {
-    // في حالة التعديل، قد يكون لدينا عميل بالفعل، لكننا نريد السماح برؤية رقم الفاتورة الأصلية
-    // لذا سنعرض حقل البحث دائماً، ولكن إذا تم تحديد العميل، نجعله للقراءة فقط أو نعرض العميل بجانبه
-    
+  Widget _buildReturnSearchField(BuildContext context, Color color) {
+    final hasClient = widget.selectedClient != null;
+
     return Row(
       children: [
         Expanded(
-          child: TextField(
-            controller: _invoiceSearchCtrl,
-            keyboardType: TextInputType.text, // قد يحتوي على حروف
-            // إذا كان العميل محدداً، فهذا يعني أننا وجدنا الفاتورة، نغلق الحقل لمنع التغيير العشوائي
-            enabled: widget.selectedClient == null, 
-            decoration: InputDecoration(
-              labelText: 'رقم الفاتورة الأصلية',
-              hintText: 'بحث...',
-              prefixIcon: const Icon(Icons.receipt_long),
-              border: const OutlineInputBorder(),
-              filled: true,
-              fillColor: widget.selectedClient != null ? Colors.grey.shade200 : Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: hasClient ? Colors.grey.shade50 : Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: hasClient ? [] : [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            onSubmitted: (val) => _performSearch(context),
+            child: TextField(
+              controller: _invoiceSearchCtrl,
+              enabled: !hasClient,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                hintText: 'أدخل رقم الفاتورة الأصلية...',
+                prefixIcon: Icon(Icons.youtube_searched_for, color: color),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                filled: true,
+                fillColor: Colors.transparent,
+              ),
+              onSubmitted: (_) => _performSearch(context),
+            ),
           ),
         ),
-        const SizedBox(width: 8),
-        if (widget.selectedClient == null)
-          IconButton.filled(
-            onPressed: () => _performSearch(context),
-            icon: const Icon(Icons.search),
-            tooltip: 'بحث',
-            style: IconButton.styleFrom(
-              backgroundColor: PosUtils.getThemeColor(widget.invoiceType),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        const SizedBox(width: 12),
+        if (!hasClient)
+          InkWell(
+            onTap: () => _performSearch(context),
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.search_rounded, color: Colors.white),
             ),
           )
         else
-          // أيقونة قفل للدلالة على الارتباط
-          IconButton(
-             onPressed: () {
-               // هنا يمكن إضافة منطق لإلغاء المرتجع والبدء من جديد مستقبلاً
-             },
-             icon: const Icon(Icons.lock, color: Colors.grey),
-             tooltip: 'مرتبط بالفاتورة الأصلية',
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: const Icon(Icons.lock_outline_rounded, color: Colors.grey),
           ),
       ],
     );
@@ -145,14 +203,18 @@ class _PosClientSectionState extends State<PosClientSection> {
     final invoiceNum = _invoiceSearchCtrl.text.trim();
     if (invoiceNum.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("الرجاء إدخال رقم الفاتورة")),
+        SnackBar(
+          content: const Text("الرجاء إدخال رقم الفاتورة"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
       return;
     }
     context.read<SalesCubit>().searchForInvoice(invoiceNum);
   }
 
-  Widget _buildClientSearchField() {
+  Widget _buildClientSearchField(Color color) {
     return Autocomplete<ClientSupplierEntity>(
       initialValue: widget.selectedClient != null
           ? TextEditingValue(text: widget.selectedClient!.name)
@@ -168,19 +230,74 @@ class _PosClientSectionState extends State<PosClientSection> {
       displayStringForOption: (option) => option.name,
       onSelected: widget.onClientSelected,
       fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-        return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          onEditingComplete: onEditingComplete,
-          decoration: InputDecoration(
-            labelText: (widget.invoiceType == InvoiceType.sales) ? 'العميل' : 'المورد',
-            prefixIcon: const Icon(Icons.person_search),
-            border: const OutlineInputBorder(),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onEditingComplete: onEditingComplete,
+            decoration: InputDecoration(
+              hintText: (widget.invoiceType == InvoiceType.sales) 
+                  ? 'بحث عن عميل...' 
+                  : 'بحث عن مورد...',
+              prefixIcon: Icon(Icons.person_search_rounded, color: color),
+              suffixIcon: const Icon(Icons.arrow_drop_down_circle_outlined, color: Colors.grey),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: Colors.transparent,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        );
+      },
+      // تحسين قائمة الخيارات المقترحة
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 8,
+            borderRadius: BorderRadius.circular(15),
+            color: Colors.white,
+            child: Container(
+              width: MediaQuery.of(context).size.width - 64, // عرض مناسب
+              constraints: const BoxConstraints(maxHeight: 250),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (BuildContext context, int index) {
+                  final option = options.elementAt(index);
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: color.withValues(alpha: 0.1),
+                      child: Text(
+                        option.name[0].toUpperCase(),
+                        style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    title: Text(option.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(option.phone, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
             ),
           ),
         );

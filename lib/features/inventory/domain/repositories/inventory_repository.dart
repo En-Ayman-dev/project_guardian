@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/category_entity.dart';
+import '../entities/product_entity.dart';
 import '../entities/unit_entity.dart';
 
 abstract class InventoryRepository {
@@ -15,4 +16,6 @@ abstract class InventoryRepository {
   Future<Either<Failure, void>> addUnit(UnitEntity unit);
   Future<Either<Failure, void>> deleteUnit(String id);
   Future<Either<Failure, void>> updateUnit(UnitEntity unit);
+  // أضف هذا السطر داخل الـ abstract class
+Future<Either<Failure, List<ProductEntity>>> getProducts();
 }

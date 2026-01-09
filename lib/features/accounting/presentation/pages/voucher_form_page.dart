@@ -1,3 +1,6 @@
+// [phase_2] modification
+// file: lib/features/accounting/presentation/pages/voucher_form_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,7 +16,7 @@ import '../manager/accounting_state.dart';
 
 class VoucherFormPage extends StatelessWidget {
   final ClientSupplierEntity clientSupplier;
-  final VoucherEntity? voucherToEdit; // [NEW] للمعالجة في حالة التعديل
+  final VoucherEntity? voucherToEdit;
 
   const VoucherFormPage({
     super.key,
@@ -37,10 +40,7 @@ class _VoucherView extends StatefulWidget {
   final ClientSupplierEntity clientSupplier;
   final VoucherEntity? voucherToEdit;
 
-  const _VoucherView({
-    required this.clientSupplier,
-    this.voucherToEdit,
-  });
+  const _VoucherView({required this.clientSupplier, this.voucherToEdit});
 
   @override
   State<_VoucherView> createState() => _VoucherViewState();
@@ -54,7 +54,6 @@ class _VoucherViewState extends State<_VoucherView> {
   late TextEditingController _noteController;
   late TextEditingController _linkedInvoiceController;
 
-  // نصوص مقترحة للملاحظات (Smart Chips)
   final List<String> _quickNotes = [
     'دفعة من الحساب',
     'سداد فاتورة رقم ',
@@ -67,14 +66,16 @@ class _VoucherViewState extends State<_VoucherView> {
     super.initState();
     final editVoucher = widget.voucherToEdit;
 
-    // تهيئة القيم: إما من السند المراد تعديله أو قيم افتراضية
     if (editVoucher != null) {
       _selectedType = editVoucher.type;
-      _amountController = TextEditingController(text: editVoucher.amount.toString());
+      _amountController = TextEditingController(
+        text: editVoucher.amount.toString(),
+      );
       _noteController = TextEditingController(text: editVoucher.note);
-      _linkedInvoiceController = TextEditingController(text: editVoucher.linkedInvoiceId ?? '');
+      _linkedInvoiceController = TextEditingController(
+        text: editVoucher.linkedInvoiceId ?? '',
+      );
     } else {
-      // الافتراضي: سند قبض للعميل، سند صرف للمورد
       _selectedType = widget.clientSupplier.type == ClientType.client
           ? VoucherType.receipt
           : VoucherType.payment;
@@ -98,16 +99,18 @@ class _VoucherViewState extends State<_VoucherView> {
       final isEditing = widget.voucherToEdit != null;
 
       final voucher = VoucherEntity(
-        id: isEditing ? widget.voucherToEdit!.id : const Uuid().v4(), // الحفاظ على الـ ID عند التعديل
-        voucherNumber: isEditing 
-            ? widget.voucherToEdit!.voucherNumber 
+        id: isEditing ? widget.voucherToEdit!.id : const Uuid().v4(),
+        voucherNumber: isEditing
+            ? widget.voucherToEdit!.voucherNumber
             : '#VO-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
         type: _selectedType,
         amount: amount,
-        date: isEditing ? widget.voucherToEdit!.date : DateTime.now(), // الحفاظ على التاريخ القديم أو جديد
+        date: isEditing ? widget.voucherToEdit!.date : DateTime.now(),
         clientSupplierId: widget.clientSupplier.id,
         clientSupplierName: widget.clientSupplier.name,
-        linkedInvoiceId: _linkedInvoiceController.text.isEmpty ? null : _linkedInvoiceController.text,
+        linkedInvoiceId: _linkedInvoiceController.text.isEmpty
+            ? null
+            : _linkedInvoiceController.text,
         note: _noteController.text,
       );
 
@@ -119,7 +122,6 @@ class _VoucherViewState extends State<_VoucherView> {
     }
   }
 
-  // دالة مساعدة لإضافة نص للملاحظات بذكاء
   void _addNote(String text) {
     final currentText = _noteController.text;
     if (currentText.isEmpty) {
@@ -127,7 +129,6 @@ class _VoucherViewState extends State<_VoucherView> {
     } else {
       _noteController.text = '$currentText - $text';
     }
-    // تحريك المؤشر للنهاية
     _noteController.selection = TextSelection.fromPosition(
       TextPosition(offset: _noteController.text.length),
     );
@@ -136,275 +137,421 @@ class _VoucherViewState extends State<_VoucherView> {
   @override
   Widget build(BuildContext context) {
     final isReceipt = _selectedType == VoucherType.receipt;
-    final color = isReceipt ? Colors.green : Colors.red;
+    final themeColor = isReceipt ? Colors.green.shade700 : Colors.red.shade700;
     final isEditing = widget.voucherToEdit != null;
+    final title = isEditing
+        ? 'تعديل السند (${widget.voucherToEdit!.voucherNumber})'
+        : (isReceipt ? 'إنشاء سند قبض' : 'إنشاء سند صرف');
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isEditing 
-            ? 'تعديل السند (${widget.voucherToEdit!.voucherNumber})' 
-            : (isReceipt ? 'سند قبض جديد' : 'سند صرف جديد')),
-        backgroundColor: color,
-        foregroundColor: Colors.white,
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           if (isEditing)
             IconButton(
-              icon: const Icon(Icons.delete),
-              tooltip: 'حذف السند',
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.white,
+              ),
               onPressed: () => _confirmDelete(context),
             ),
         ],
       ),
-      body: BlocListener<AccountingCubit, AccountingState>(
-        listener: (context, state) {
-          state.whenOrNull(
-            success: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(isEditing ? 'تم تعديل السند بنجاح' : 'تم حفظ السند بنجاح'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              context.pop(true); // العودة مع نتيجة لتحديث القائمة
-            },
-            error: (msg) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(msg), backgroundColor: Colors.red),
-              );
-            },
-            invoiceLookupSuccess: (remaining, invoiceNum) {
-              _amountController.text = remaining.toStringAsFixed(2);
-              // [UX] اقتراح نص تلقائي عند العثور على فاتورة
-              if (_noteController.text.isEmpty) {
-                 _noteController.text = 'سداد متبقي الفاتورة رقم $invoiceNum';
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('تم جلب المبلغ المتبقي: $remaining'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
-            },
-            invoiceLookupError: (msg) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(msg), backgroundColor: Colors.orange),
-              );
-            },
-          );
-        },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 1. بطاقة الطرف الثاني
-                Card(
-                  surfaceTintColor: Colors.white,
-                  elevation: 2,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: color.withOpacity(0.1),
-                      child: Icon(Icons.person, color: color),
-                    ),
-                    title: Text(widget.clientSupplier.name),
-                    subtitle: Text(
-                      widget.clientSupplier.type == ClientType.client ? 'عميل' : 'مورد',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // 2. نوع السند (تعطيله في التعديل لتجنب تعقيدات المحاسبة)
-                IgnorePointer(
-                  ignoring: isEditing, // لا يمكن تغيير النوع أثناء التعديل
-                  child: Opacity(
-                    opacity: isEditing ? 0.7 : 1.0,
-                    child: SegmentedButton<VoucherType>(
-                      segments: const [
-                        ButtonSegment(
-                          value: VoucherType.receipt,
-                          label: Text('سند قبض'),
-                          icon: Icon(Icons.download),
-                        ),
-                        ButtonSegment(
-                          value: VoucherType.payment,
-                          label: Text('سند صرف'),
-                          icon: Icon(Icons.upload),
-                        ),
-                      ],
-                      selected: {_selectedType},
-                      onSelectionChanged: (Set<VoucherType> newSelection) {
-                        setState(() {
-                          _selectedType = newSelection.first;
-                        });
-                      },
-                      style: ButtonStyle(
-                        foregroundColor: MaterialStateProperty.resolveWith((states) {
-                          if (states.contains(MaterialState.selected)) return Colors.white;
-                          return Colors.black;
-                        }),
-                        backgroundColor: MaterialStateProperty.resolveWith((states) {
-                          if (states.contains(MaterialState.selected)) return color;
-                          return null;
-                        }),
-                      ),
-                    ),
-                  ),
-                ),
-                if (isEditing)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      '* لا يمكن تغيير نوع السند أثناء التعديل لضمان سلامة القيود',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                const SizedBox(height: 24),
-
-                // 3. رقم الفاتورة المرجعي
-                BlocBuilder<AccountingCubit, AccountingState>(
-                  builder: (context, state) {
-                    final isLoading = state.maybeWhen(
-                        invoiceLookupLoading: () => true, orElse: () => false);
-                    
-                    return TextFormField(
-                      controller: _linkedInvoiceController,
-                      decoration: InputDecoration(
-                        labelText: 'رقم الفاتورة المرجعي (اختياري)',
-                        prefixIcon: const Icon(Icons.receipt_long),
-                        hintText: 'أدخل الرقم للبحث...',
-                        border: const OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  context.read<AccountingCubit>().lookupInvoice(
-                                        _linkedInvoiceController.text,
-                                        _selectedType,
-                                      );
-                                },
-                          icon: isLoading
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.search, color: Colors.blue),
-                        ),
-                      ),
-                      onFieldSubmitted: (value) {
-                        context.read<AccountingCubit>().lookupInvoice(value, _selectedType);
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // 4. المبلغ
-                TextFormField(
-                  controller: _amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'المبلغ *',
-                    prefixIcon: Icon(Icons.attach_money),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'يرجى إدخال المبلغ';
-                    if (double.tryParse(value) == null || double.parse(value) <= 0) return 'قيمة غير صحيحة';
-                    return null;
-                  },
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 24),
-
-                // 5. الملاحظات (مع النصوص الذكية)
-                const Text('الملاحظات / البيان:', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                // [UX] Smart Chips
-                Wrap(
-                  spacing: 8.0,
-                  children: _quickNotes.map((note) {
-                    return ActionChip(
-                      label: Text(note),
-                      onPressed: () => _addNote(note),
-                      backgroundColor: Colors.grey[100],
-                      labelStyle: TextStyle(color: Colors.grey[800], fontSize: 12),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _noteController,
-                  decoration: const InputDecoration(
-                    hintText: 'اكتب تفاصيل السند هنا...',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.description),
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 32),
-
-                // زر الحفظ
-                BlocBuilder<AccountingCubit, AccountingState>(
-                  builder: (context, state) {
-                    return FilledButton.icon(
-                      onPressed: state.maybeWhen(
-                        loading: () => null,
-                        orElse: () => _submit,
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: color,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      icon: state.maybeWhen(
-                        loading: () => const SizedBox(
-                          width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
-                        orElse: () => Icon(isEditing ? Icons.update : Icons.save),
-                      ),
-                      label: Text(
-                        state.maybeWhen(
-                          loading: () => ' جاري المعالجة...',
-                          orElse: () => isEditing ? 'تعديل السند' : 'حفظ السند',
-                        ),
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    );
-                  },
-                ),
-              ],
+      body: Stack(
+        children: [
+          // 1. Curved Background
+          Container(
+            height: 220,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [themeColor, themeColor.withOpacity(0.8)],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
             ),
           ),
+
+          // 2. Floating Form
+          SafeArea(
+            child: BlocListener<AccountingCubit, AccountingState>(
+              listener: (context, state) {
+                state.whenOrNull(
+                  success: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isEditing ? 'تم الحفظ بنجاح' : 'تم إنشاء السند بنجاح',
+                        ),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    context.pop(true);
+                  },
+                  error: (msg) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                    );
+                  },
+                  invoiceLookupSuccess: (remaining, invoiceNum) {
+                    _amountController.text = remaining.toStringAsFixed(2);
+                    if (_noteController.text.isEmpty) {
+                      _noteController.text =
+                          'سداد متبقي الفاتورة رقم $invoiceNum';
+                    }
+                  },
+                );
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    // Form Container
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Client Header
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: themeColor.withOpacity(0.1),
+                                  child: Icon(Icons.person, color: themeColor),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.clientSupplier.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        widget.clientSupplier.type ==
+                                                ClientType.client
+                                            ? 'الطرف: عميل'
+                                            : 'الطرف: مورد',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 32),
+
+                            // Voucher Type Selector (Disabled if editing)
+                            if (!isEditing) ...[
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildTypeOption(
+                                        'سند قبض',
+                                        VoucherType.receipt,
+                                        Icons.download_rounded,
+                                        Colors.green,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: _buildTypeOption(
+                                        'سند صرف',
+                                        VoucherType.payment,
+                                        Icons.upload_rounded,
+                                        Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+
+                            // Invoice Link
+                            _buildSectionLabel('ربط بفاتورة (اختياري)'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _linkedInvoiceController,
+                              decoration: InputDecoration(
+                                hintText: 'رقم الفاتورة...',
+                                prefixIcon: const Icon(Icons.link),
+                                suffixIcon: IconButton(
+                                  icon: const Icon(
+                                    Icons.search,
+                                    color: Colors.blue,
+                                  ),
+                                  onPressed: () {
+                                    context
+                                        .read<AccountingCubit>()
+                                        .lookupInvoice(
+                                          _linkedInvoiceController.text,
+                                          _selectedType,
+                                        );
+                                  },
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey.shade50,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Amount Field (Highlighted)
+                            _buildSectionLabel('المبلغ'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _amountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: themeColor,
+                              ),
+                              decoration: InputDecoration(
+                                prefixIcon: Icon(
+                                  Icons.attach_money,
+                                  color: themeColor,
+                                ),
+                                filled: true,
+                                fillColor: themeColor.withOpacity(0.05),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: themeColor.withOpacity(0.3),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: themeColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty)
+                                  return 'المبلغ مطلوب';
+                                if (double.tryParse(value) == null ||
+                                    double.parse(value) <= 0)
+                                  return 'قيمة غير صحيحة';
+                                return null;
+                              },
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Notes
+                            _buildSectionLabel('البيان / الملاحظات'),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: _quickNotes
+                                  .map(
+                                    (note) => ActionChip(
+                                      label: Text(note),
+                                      backgroundColor: Colors.white,
+                                      side: BorderSide(
+                                        color: Colors.grey.shade300,
+                                      ),
+                                      onPressed: () => _addNote(note),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _noteController,
+                              maxLines: 3,
+                              decoration: InputDecoration(
+                                hintText: 'اكتب تفاصيل العملية...',
+                                filled: true,
+                                fillColor: Colors.grey.shade50,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Submit Button
+                            BlocBuilder<AccountingCubit, AccountingState>(
+                              builder: (context, state) {
+                                final isLoading = state.maybeWhen(
+                                  loading: () => true,
+                                  orElse: () => false,
+                                );
+                                return SizedBox(
+                                  width: double.infinity,
+                                  height: 55,
+                                  child: ElevatedButton(
+                                    onPressed: isLoading ? null : _submit,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: themeColor,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      elevation: 4,
+                                    ),
+                                    child: isLoading
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(
+                                            isEditing
+                                                ? 'حفظ التعديلات'
+                                                : 'إتمام العملية',
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: Colors.grey.shade700,
+      ),
+    );
+  }
+
+  Widget _buildTypeOption(
+    String title,
+    VoucherType type,
+    IconData icon,
+    Color color,
+  ) {
+    final isSelected = _selectedType == type;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedType = type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? Colors.white : Colors.grey),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // نافذة تأكيد الحذف
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('حذف السند'),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('تأكيد الحذف'),
         content: const Text(
-          'هل أنت متأكد من حذف هذا السند؟\nسيتم عكس التأثير المالي على رصيد العميل/المورد.',
+          'هل أنت متأكد من حذف هذا السند؟ لا يمكن التراجع عن هذه العملية.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إلغاء'),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(dialogContext); // إغلاق الديالوج
-              // تنفيذ الحذف
-              context.read<AccountingCubit>().deleteVoucher(widget.voucherToEdit!.id);
+              Navigator.pop(ctx);
+              context.read<AccountingCubit>().deleteVoucher(
+                widget.voucherToEdit!.id,
+              );
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('تأكيد الحذف'),
+            child: const Text(
+              'حذف',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

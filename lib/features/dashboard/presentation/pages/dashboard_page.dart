@@ -185,8 +185,9 @@ class _DashboardView extends StatelessWidget {
                         color: Colors.blue.shade700,
                         onTap: () {
                           context.push('/pos').then((_) {
-                            if (context.mounted)
+                            if (context.mounted) {
                               context.read<DashboardCubit>().loadStats();
+                            }
                           });
                         },
                       ),
@@ -213,6 +214,13 @@ class _DashboardView extends StatelessWidget {
                         label: "المنتجات",
                         color: Colors.purple,
                         onTap: () => context.push('/products'),
+                      ),
+                      // [NEW] زر التقارير الجديد
+                      _QuickActionTile(
+                        icon: Icons.bar_chart_rounded, // أيقونة معبرة
+                        label: "التقارير",
+                        color: const Color(0xFF607D8B), // Blue Grey
+                        onTap: () => context.push('/reports'),
                       ),
                       _QuickActionTile(
                         icon: Icons.settings_rounded,
@@ -252,7 +260,7 @@ class _WelcomeHeader extends StatelessWidget {
     String firstChar = 'م';
 
     if (user?.name != null && user!.name.trim().isNotEmpty) {
-      displayName = user!.name;
+      displayName = user.name;
       firstChar = displayName.substring(0, 1).toUpperCase();
     }
 
@@ -468,7 +476,7 @@ class _ModernDrawer extends StatelessWidget {
     // [FIX] التعامل الآمن مع البريد الإلكتروني الفارغ
     String emailChar = 'A';
     if (user?.email != null && user!.email.isNotEmpty) {
-      emailChar = user!.email.substring(0, 1).toUpperCase();
+      emailChar = user.email.substring(0, 1).toUpperCase();
     }
 
     return NavigationDrawer(

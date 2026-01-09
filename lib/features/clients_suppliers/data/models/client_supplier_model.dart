@@ -1,3 +1,6 @@
+// [phase_3] correction - File 1/4
+// file: lib/features/clients_suppliers/data/models/client_supplier_model.dart
+
 // ignore_for_file: invalid_annotation_target
 
 import 'package:cloud_firestore/cloud_firestore.dart'; // For Timestamp
@@ -29,11 +32,15 @@ abstract class ClientSupplierModel with _$ClientSupplierModel {
   factory ClientSupplierModel.fromJson(Map<String, dynamic> json) =>
       _$ClientSupplierModelFromJson(json);
 
-  // التحويل من Firestore Document
-  factory ClientSupplierModel.fromFirestore(DocumentSnapshot doc) {
+  // [FIX] تمت إضافة هذه الدالة لأن الكود يستدعيها بهذا الاسم
+  factory ClientSupplierModel.fromSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return ClientSupplierModel.fromJson(data).copyWith(id: doc.id);
   }
+
+  // أبقينا على هذه الدالة أيضاً في حال كانت مستخدمة في أماكن أخرى
+  factory ClientSupplierModel.fromFirestore(DocumentSnapshot doc) => 
+      ClientSupplierModel.fromSnapshot(doc);
 
   // التحويل إلى Entity
   ClientSupplierEntity toEntity() {

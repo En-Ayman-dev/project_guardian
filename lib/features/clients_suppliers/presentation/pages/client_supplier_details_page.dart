@@ -1,5 +1,9 @@
+// [phase_2] modification
+// file: lib/features/clients_suppliers/presentation/pages/client_supplier_details_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart'; // لتنسيق التاريخ
 import '../../domain/entities/client_supplier_entity.dart';
 import '../../domain/entities/enums/client_type.dart';
 
@@ -11,267 +15,368 @@ class ClientSupplierDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isClient = entity.type == ClientType.client;
-    final typeLabel = isClient ? 'عميل' : 'مورد';
-    final primaryColor = isClient ? Colors.blue : Colors.orange;
+    // تحديد الألوان بناءً على النوع (أزرق للعملاء، برتقالي للموردين)
+    final themeColor = isClient
+        ? const Color(0xFF1A73E8)
+        : const Color(0xFFE65100);
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('تفاصيل $typeLabel'),
-        actions: [
-          // زر إضافة سند (قبض/صرف)
-          IconButton(
-            onPressed: () async {
-              // الانتقال لصفحة السند، وانتظار النتيجة (قد نحتاج لتحديث الصفحة لاحقاً)
-              await context.push('/clients-suppliers/voucher', extra: entity);
-            },
-            icon: const Icon(Icons.receipt_long),
-            tooltip: isClient ? 'سند قبض' : 'سند صرف',
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          isClient ? 'ملف العميل' : 'ملف المورد',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
-          // زر التعديل
+        ),
+        centerTitle: true,
+        leading: const BackButton(color: Colors.white),
+        actions: [
           IconButton(
             onPressed: () {
               context.push('/clients-suppliers/add', extra: entity);
             },
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.edit_rounded, color: Colors.white),
             tooltip: 'تعديل البيانات',
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Header Card
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+      body: Stack(
+        children: [
+          // 1. الخلفية الملونة (Curved Header)
+          Container(
+            height: 240,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [themeColor, themeColor.withOpacity(0.8)],
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: primaryColor.withValues(alpha: 0.1),
-                      child: Icon(
-                        isClient ? Icons.person : Icons.local_shipping,
-                        size: 40,
-                        color: primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      entity.name,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        typeLabel,
-                        style: TextStyle(
-                          color: primaryColor.shade800,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
             ),
-            const SizedBox(height: 16),
+          ),
 
-            // 2. بطاقة الرصيد المالي (Financial Balance)
-            _buildBalanceCard(context, isClient, entity.balance),
-            
-            // زر سريع لإضافة السند تحت الرصيد مباشرة
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
-              child: FilledButton.icon(
-                onPressed: () async {
-                  await context.push('/clients-suppliers/voucher', extra: entity);
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: isClient ? Colors.green.shade600 : Colors.red.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: Icon(isClient ? Icons.add_circle_outline : Icons.remove_circle_outline),
-                label: Text(
-                  isClient ? 'إضافة سند قبض (استلام)' : 'إضافة سند صرف (دفع)',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // 3. Info List
-            Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+          // 2. المحتوى الرئيسي
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  _buildDetailTile(
-                    context,
-                    icon: Icons.phone,
-                    title: 'رقم الهاتف',
-                    value: entity.phone.isNotEmpty ? entity.phone : 'غير متوفر',
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _buildDetailTile(
-                    context,
-                    icon: Icons.email,
-                    title: 'البريد الإلكتروني',
-                    value: (entity.email?.isNotEmpty ?? false) ? entity.email! : 'غير متوفر',
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _buildDetailTile(
-                    context,
-                    icon: Icons.location_on,
-                    title: 'العنوان',
-                    value: (entity.address?.isNotEmpty ?? false) ? entity.address! : 'غير متوفر',
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _buildDetailTile(
-                    context,
-                    icon: Icons.confirmation_number,
-                    title: 'الرقم الضريبي',
-                    value: (entity.taxNumber?.isNotEmpty ?? false) ? entity.taxNumber! : 'غير متوفر',
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _buildDetailTile(
-                    context,
-                    icon: Icons.calendar_today,
-                    title: 'تاريخ الإضافة',
-                    value: entity.createdAt.toLocal().toString().split(' ')[0],
-                  ),
+                  const SizedBox(height: 10),
+
+                  // --- الكرت الرئيسي العائم (معلومات الشخص) ---
+                  _buildProfileCard(context, themeColor),
+
+                  const SizedBox(height: 20),
+
+                  // --- كرت الرصيد المالي ---
+                  _buildFinancialCard(context, isClient),
+
+                  const SizedBox(height: 24),
+
+                  // --- قائمة المعلومات التفصيلية ---
+                  _buildInfoSection(context, themeColor),
+
+                  const SizedBox(height: 100), // مساحة للزر العائم
                 ],
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await context.push('/clients-suppliers/voucher', extra: entity);
+        },
+        backgroundColor: themeColor,
+        icon: const Icon(Icons.receipt_long_rounded, color: Colors.white),
+        label: Text(
+          isClient ? 'سند قبض جديد' : 'سند صرف جديد',
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
+        elevation: 4,
       ),
     );
   }
 
-  // ودجت عرض الرصيد
-  Widget _buildBalanceCard(BuildContext context, bool isClient, double balance) {
-    // تحديد النص واللون بناءً على نوع العميل
-    final String title = isClient 
-        ? 'المديونية (لنا)' 
-        : 'المستحقات (للمورد)';
-        
-    final String subtitle = isClient
-        ? 'المبلغ الذي يدين به العميل للنظام'
-        : 'المبلغ الذي يدين به النظام للمورد';
-
-    // العميل: إذا كان الرصيد موجب فهذا جيد (مديون لنا). 
-    // المورد: إذا كان الرصيد موجب فهذا دين علينا.
-    final Color color = isClient ? Colors.green.shade700 : Colors.red.shade700;
-    final Color bgColor = isClient ? Colors.green.shade50 : Colors.red.shade50;
-
-    return Card(
-      color: bgColor,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: color.withValues(alpha: 0.3)),
+  Widget _buildProfileCard(BuildContext context, Color themeColor) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.account_balance_wallet,
-                color: color,
-                size: 28,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: themeColor.withOpacity(0.2), width: 3),
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: themeColor.withOpacity(0.1),
+              child: Text(
+                entity.name.isNotEmpty ? entity.name[0].toUpperCase() : '?',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: themeColor,
+                ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: color.withValues(alpha: 0.8),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            entity.name,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
-            Text(
-              balance.toStringAsFixed(2),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              entity.type == ClientType.client ? 'عميل' : 'مورد',
               style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w900,
-                fontSize: 20,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDetailTile(
-    BuildContext context, {
+  Widget _buildFinancialCard(BuildContext context, bool isClient) {
+    // منطق الألوان والنصوص:
+    // العميل: رصيد موجب (لنا) = أخضر، رصيد سالب (له) = أحمر.
+    // المورد: رصيد موجب (له) = أحمر (دين علينا)، رصيد سالب (لنا) = أخضر.
+
+    // لتبسيط العرض: سنعرض الرقم كما هو، ونلون بناءً على القيمة والدلالة.
+    // سنفترض هنا: الرقم الموجب دائمًا يعني "مديونية" على الطرف الآخر تجاه النظام (Asset)،
+    // والرقم السالب يعني "دائنية" للطرف الآخر على النظام (Liability).
+    // *ملاحظة:* هذا يعتمد على كيفية تخزين الرصيد في الباك إند. سأفترض هنا أن الموجب = لنا، السالب = علينا.
+
+    final balance = entity.balance;
+    final isPositive = balance >= 0;
+
+    // اللون: أخضر إذا كان المال لنا (موجب)، أحمر إذا كان علينا (سالب)
+    final statusColor = isPositive
+        ? Colors.green.shade700
+        : Colors.red.shade700;
+    final bgColor = isPositive ? Colors.green.shade50 : Colors.red.shade50;
+    final icon = isPositive
+        ? Icons.trending_up_rounded
+        : Icons.trending_down_rounded;
+
+    String statusText;
+    if (balance == 0) {
+      statusText = "الرصيد متزن";
+    } else if (isPositive) {
+      statusText = "رصيد لنا (مدين)";
+    } else {
+      statusText = "رصيد علينا (دائن)";
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: statusColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                statusText,
+                style: TextStyle(
+                  color: statusColor.withOpacity(0.8),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    balance.abs().toStringAsFixed(2),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "\$", // أو العملة المحلية
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: statusColor.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: statusColor, size: 30),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(BuildContext context, Color themeColor) {
+    return Column(
+      children: [
+        _buildInfoTile(
+          icon: Icons.phone_rounded,
+          title: "رقم الهاتف",
+          value: entity.phone.isNotEmpty ? entity.phone : "غير متوفر",
+          themeColor: themeColor,
+        ),
+        const SizedBox(height: 12),
+        _buildInfoTile(
+          icon: Icons.email_rounded,
+          title: "البريد الإلكتروني",
+          value: (entity.email?.isNotEmpty ?? false)
+              ? entity.email!
+              : "غير متوفر",
+          themeColor: themeColor,
+        ),
+        const SizedBox(height: 12),
+        _buildInfoTile(
+          icon: Icons.location_on_rounded,
+          title: "العنوان",
+          value: (entity.address?.isNotEmpty ?? false)
+              ? entity.address!
+              : "غير متوفر",
+          themeColor: themeColor,
+        ),
+        const SizedBox(height: 12),
+        _buildInfoTile(
+          icon: Icons.verified_user_rounded,
+          title: "الرقم الضريبي",
+          value: (entity.taxNumber?.isNotEmpty ?? false)
+              ? entity.taxNumber!
+              : "غير متوفر",
+          themeColor: themeColor,
+        ),
+        const SizedBox(height: 12),
+        _buildInfoTile(
+          icon: Icons.calendar_month_rounded,
+          title: "تاريخ الانضمام",
+          value: DateFormat('yyyy-MM-dd').format(entity.createdAt),
+          themeColor: themeColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoTile({
     required IconData icon,
     required String title,
     required String value,
+    required Color themeColor,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey.shade600),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: Colors.grey.shade600,
-          fontSize: 12,
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      subtitle: Text(
-        value,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: themeColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: themeColor, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

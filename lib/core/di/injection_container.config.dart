@@ -86,6 +86,16 @@ import '../../features/inventory/presentation/manager/inventory_settings_cubit.d
     as _i506;
 import '../../features/inventory/presentation/manager/product_cubit.dart'
     as _i445;
+import '../../features/reports/domain/usecases/generate_account_statement_usecase.dart'
+    as _i567;
+import '../../features/reports/domain/usecases/get_general_balances_usecase.dart'
+    as _i747;
+import '../../features/reports/presentation/manager/daily_report_cubit.dart'
+    as _i750;
+import '../../features/reports/presentation/manager/general_balances_cubit.dart'
+    as _i1030;
+import '../../features/reports/presentation/manager/reports_cubit.dart'
+    as _i600;
 import '../../features/sales/data/datasources/sales_remote_data_source.dart'
     as _i37;
 import '../../features/sales/data/repositories/sales_repository_impl.dart'
@@ -106,6 +116,7 @@ import '../../features/sales/domain/usecases/update_invoice_usecase.dart'
 import '../../features/sales/presentation/manager/invoices_list_cubit.dart'
     as _i1069;
 import '../../features/sales/presentation/manager/sales_cubit.dart' as _i740;
+import '../services/pdf_report_service.dart' as _i839;
 import 'register_module.dart' as _i291;
 
 extension GetItInjectableX on _i174.GetIt {
@@ -122,6 +133,7 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i59.FirebaseAuth>(() => registerModule.firebaseAuth);
     gh.lazySingleton<_i974.FirebaseFirestore>(() => registerModule.firestore);
+    gh.lazySingleton<_i839.PdfReportService>(() => _i839.PdfReportService());
     gh.lazySingleton<_i248.InventoryRemoteDataSource>(
       () => _i248.InventoryRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
     );
@@ -230,6 +242,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i434.SalesRepository>(
       () => _i779.SalesRepositoryImpl(gh<_i37.SalesRemoteDataSource>()),
     );
+    gh.factory<_i750.DailyReportCubit>(
+      () => _i750.DailyReportCubit(
+        gh<_i434.SalesRepository>(),
+        gh<_i422.InventoryRepository>(),
+        gh<_i162.ClientSupplierRepository>(),
+        gh<_i839.PdfReportService>(),
+      ),
+    );
     gh.factory<_i445.ProductCubit>(
       () => _i445.ProductCubit(
         gh<_i340.GetProductsUseCase>(),
@@ -237,6 +257,10 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i855.UpdateProductUseCase>(),
         gh<_i789.DeleteProductUseCase>(),
       ),
+    );
+    gh.lazySingleton<_i747.GetGeneralBalancesUseCase>(
+      () =>
+          _i747.GetGeneralBalancesUseCase(gh<_i162.ClientSupplierRepository>()),
     );
     gh.factory<_i629.DashboardCubit>(
       () => _i629.DashboardCubit(
@@ -250,6 +274,18 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i215.AuthBloc>(
       () => _i215.AuthBloc(gh<_i787.AuthRepository>()),
+    );
+    gh.factory<_i1030.GeneralBalancesCubit>(
+      () => _i1030.GeneralBalancesCubit(
+        gh<_i747.GetGeneralBalancesUseCase>(),
+        gh<_i839.PdfReportService>(),
+      ),
+    );
+    gh.lazySingleton<_i567.GenerateAccountStatementUseCase>(
+      () => _i567.GenerateAccountStatementUseCase(
+        gh<_i434.SalesRepository>(),
+        gh<_i330.AccountingRepository>(),
+      ),
     );
     gh.lazySingleton<_i61.AddInvoiceUseCase>(
       () => _i61.AddInvoiceUseCase(gh<_i434.SalesRepository>()),
@@ -280,6 +316,12 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i165.AccountingCubit(
         gh<_i330.AccountingRepository>(),
         gh<_i878.GetInvoiceByNumberUseCase>(),
+      ),
+    );
+    gh.factory<_i600.ReportsCubit>(
+      () => _i600.ReportsCubit(
+        gh<_i567.GenerateAccountStatementUseCase>(),
+        gh<_i839.PdfReportService>(),
       ),
     );
     gh.factory<_i740.SalesCubit>(

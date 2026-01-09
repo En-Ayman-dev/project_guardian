@@ -18,4 +18,5 @@ abstract class ClientSupplierRepository {
 
   // حذف
   Future<Either<Failure, void>> deleteClientSupplier(String id);
+  Future<Either<Failure, ClientSupplierEntity>> getClientById(String id);
 }
