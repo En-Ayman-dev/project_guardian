@@ -11,7 +11,6 @@ import '../../../sales/domain/repositories/sales_repository.dart';
 import '../../../inventory/domain/repositories/inventory_repository.dart';
 import '../../../clients_suppliers/domain/repositories/client_supplier_repository.dart';
 // هذا الاستيراد ضروري لكي يتعرف على InvoiceEntity و InvoiceItemEntity
-import '../../../sales/domain/entities/invoice_entity.dart'; 
 import '../../../inventory/domain/entities/product_entity.dart';
 import '../../domain/entities/daily_report_row.dart';
 

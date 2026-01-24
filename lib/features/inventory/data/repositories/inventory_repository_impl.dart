@@ -11,7 +11,6 @@ import '../../domain/repositories/inventory_repository.dart';
 import '../datasources/inventory_remote_data_source.dart';
 import '../models/category_model.dart';
 import '../models/unit_model.dart';
-import '../models/product_model.dart'; // [FIX] تمت إضافة الاستيراد الناقص
 
 @LazySingleton(as: InventoryRepository)
 class InventoryRepositoryImpl implements InventoryRepository {
