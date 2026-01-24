@@ -1,6 +1,8 @@
 // [phase_2] modification
 // file: lib/features/sales/presentation/pages/invoices_list_page.dart
 
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -402,25 +404,20 @@ class _ModernInvoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color themeColor;
-    String typeName;
 
     // تحديد الألوان والنصوص بناءً على النوع
     switch (invoice.type) {
       case InvoiceType.sales:
         themeColor = const Color(0xFF1A73E8);
-        typeName = 'مبيعات';
         break;
       case InvoiceType.salesReturn:
         themeColor = const Color(0xFFF57C00);
-        typeName = 'مرتجع مبيعات';
         break;
       case InvoiceType.purchase:
         themeColor = const Color(0xFF34A853);
-        typeName = 'مشتريات';
         break;
       case InvoiceType.purchaseReturn:
         themeColor = const Color(0xFFD32F2F);
-        typeName = 'مرتجع مشتريات';
         break;
     }
 
