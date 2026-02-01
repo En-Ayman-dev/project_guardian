@@ -10,23 +10,17 @@ _InvoiceModel _$InvoiceModelFromJson(Map<String, dynamic> json) =>
     _InvoiceModel(
       invoiceNumber: json['invoiceNumber'] as String,
       type: $enumDecode(_$InvoiceTypeEnumMap, json['type']),
-      status:
-          $enumDecodeNullable(_$InvoiceStatusEnumMap, json['status']) ??
+      status: $enumDecodeNullable(_$InvoiceStatusEnumMap, json['status']) ??
           InvoiceStatus.draft,
-      paymentType:
-          $enumDecodeNullable(
-            _$InvoicePaymentTypeEnumMap,
-            json['paymentType'],
-          ) ??
+      paymentType: $enumDecodeNullable(
+              _$InvoicePaymentTypeEnumMap, json['paymentType']) ??
           InvoicePaymentType.cash,
       originalInvoiceNumber: json['originalInvoiceNumber'] as String?,
       clientId: json['clientId'] as String,
       clientName: json['clientName'] as String,
       date: const TimestampConverter().fromJson(json['date'] as Object),
       dueDate: _$JsonConverterFromJson<Object, DateTime>(
-        json['dueDate'],
-        const TimestampConverter().fromJson,
-      ),
+          json['dueDate'], const TimestampConverter().fromJson),
       items: (json['items'] as List<dynamic>)
           .map((e) => InvoiceItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -49,9 +43,7 @@ Map<String, dynamic> _$InvoiceModelToJson(_InvoiceModel instance) =>
       'clientName': instance.clientName,
       'date': const TimestampConverter().toJson(instance.date),
       'dueDate': _$JsonConverterToJson<Object, DateTime>(
-        instance.dueDate,
-        const TimestampConverter().toJson,
-      ),
+          instance.dueDate, const TimestampConverter().toJson),
       'items': instance.items.map((e) => e.toJson()).toList(),
       'subTotal': instance.subTotal,
       'discount': instance.discount,
@@ -82,9 +74,11 @@ const _$InvoicePaymentTypeEnumMap = {
 Value? _$JsonConverterFromJson<Json, Value>(
   Object? json,
   Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
+) =>
+    json == null ? null : fromJson(json as Json);
 
 Json? _$JsonConverterToJson<Json, Value>(
   Value? value,
   Json? Function(Value value) toJson,
-) => value == null ? null : toJson(value);
+) =>
+    value == null ? null : toJson(value);

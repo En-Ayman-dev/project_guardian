@@ -19,8 +19,12 @@ import '../../features/accounting/data/datasources/accounting_remote_data_source
     as _i718;
 import '../../features/accounting/data/repositories/accounting_repository_impl.dart'
     as _i930;
+import '../../features/accounting/data/repositories/voucher_repository_impl.dart'
+    as _i469;
 import '../../features/accounting/domain/repositories/accounting_repository.dart'
     as _i330;
+import '../../features/accounting/domain/repositories/voucher_repository.dart'
+    as _i1070;
 import '../../features/accounting/presentation/manager/accounting_cubit.dart'
     as _i165;
 import '../../features/auth/data/datasources/auth_remote_data_source.dart'
@@ -90,10 +94,14 @@ import '../../features/reports/domain/usecases/generate_account_statement_usecas
     as _i567;
 import '../../features/reports/domain/usecases/get_general_balances_usecase.dart'
     as _i747;
+import '../../features/reports/presentation/manager/account_statement_cubit.dart'
+    as _i45;
 import '../../features/reports/presentation/manager/daily_report_cubit.dart'
     as _i750;
 import '../../features/reports/presentation/manager/general_balances_cubit.dart'
     as _i1030;
+import '../../features/reports/presentation/manager/item_movement_cubit.dart'
+    as _i719;
 import '../../features/reports/presentation/manager/reports_cubit.dart'
     as _i600;
 import '../../features/sales/data/datasources/sales_remote_data_source.dart'
@@ -116,16 +124,21 @@ import '../../features/sales/domain/usecases/update_invoice_usecase.dart'
 import '../../features/sales/presentation/manager/invoices_list_cubit.dart'
     as _i1069;
 import '../../features/sales/presentation/manager/sales_cubit.dart' as _i740;
+import '../services/excel_report_service.dart' as _i453;
 import '../services/pdf_report_service.dart' as _i839;
 import 'register_module.dart' as _i291;
 
 extension GetItInjectableX on _i174.GetIt {
-  // initializes the registration of main-scope dependencies inside of GetIt
+// initializes the registration of main-scope dependencies inside of GetIt
   Future<_i174.GetIt> init({
     String? environment,
     _i526.EnvironmentFilter? environmentFilter,
   }) async {
-    final gh = _i526.GetItHelper(this, environment, environmentFilter);
+    final gh = _i526.GetItHelper(
+      this,
+      environment,
+      environmentFilter,
+    );
     final registerModule = _$RegisterModule();
     await gh.factoryAsync<_i460.SharedPreferences>(
       () => registerModule.prefs,
@@ -133,206 +146,154 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i59.FirebaseAuth>(() => registerModule.firebaseAuth);
     gh.lazySingleton<_i974.FirebaseFirestore>(() => registerModule.firestore);
+    gh.lazySingleton<_i453.ExcelReportService>(
+        () => _i453.ExcelReportService());
     gh.lazySingleton<_i839.PdfReportService>(() => _i839.PdfReportService());
-    gh.lazySingleton<_i248.InventoryRemoteDataSource>(
-      () => _i248.InventoryRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
-    );
+    gh.lazySingleton<_i1070.VoucherRepository>(
+        () => _i469.VoucherRepositoryImpl(gh<_i974.FirebaseFirestore>()));
+    gh.lazySingleton<_i248.InventoryRemoteDataSource>(() =>
+        _i248.InventoryRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()));
     gh.lazySingleton<_i107.AuthRemoteDataSource>(
-      () => _i107.AuthRemoteDataSourceImpl(gh<_i59.FirebaseAuth>()),
-    );
+        () => _i107.AuthRemoteDataSourceImpl(gh<_i59.FirebaseAuth>()));
     gh.lazySingleton<_i365.ProductRemoteDataSource>(
-      () => _i365.ProductRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
-    );
-    gh.lazySingleton<_i669.ClientSupplierRemoteDataSource>(
-      () => _i669.ClientSupplierRemoteDataSourceImpl(
-        gh<_i974.FirebaseFirestore>(),
-      ),
-    );
-    gh.lazySingleton<_i718.AccountingRemoteDataSource>(
-      () => _i718.AccountingRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
-    );
+        () => _i365.ProductRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()));
+    gh.lazySingleton<_i669.ClientSupplierRemoteDataSource>(() =>
+        _i669.ClientSupplierRemoteDataSourceImpl(
+            gh<_i974.FirebaseFirestore>()));
+    gh.lazySingleton<_i718.AccountingRemoteDataSource>(() =>
+        _i718.AccountingRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()));
     gh.lazySingleton<_i37.SalesRemoteDataSource>(
-      () => _i37.SalesRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()),
-    );
-    gh.lazySingleton<_i162.ClientSupplierRepository>(
-      () => _i215.ClientSupplierRepositoryImpl(
-        gh<_i669.ClientSupplierRemoteDataSource>(),
-      ),
-    );
+        () => _i37.SalesRemoteDataSourceImpl(gh<_i974.FirebaseFirestore>()));
+    gh.lazySingleton<_i162.ClientSupplierRepository>(() =>
+        _i215.ClientSupplierRepositoryImpl(
+            gh<_i669.ClientSupplierRemoteDataSource>()));
     gh.lazySingleton<_i437.ProductRepository>(
-      () => _i777.ProductRepositoryImpl(gh<_i365.ProductRemoteDataSource>()),
-    );
+        () => _i777.ProductRepositoryImpl(gh<_i365.ProductRemoteDataSource>()));
     gh.lazySingleton<_i787.AuthRepository>(
-      () => _i153.AuthRepositoryImpl(gh<_i107.AuthRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i941.AddClientSupplierUseCase>(
-      () =>
-          _i941.AddClientSupplierUseCase(gh<_i162.ClientSupplierRepository>()),
-    );
-    gh.lazySingleton<_i39.GetClientsSuppliersUseCase>(
-      () =>
-          _i39.GetClientsSuppliersUseCase(gh<_i162.ClientSupplierRepository>()),
-    );
-    gh.lazySingleton<_i422.InventoryRepository>(
-      () =>
-          _i572.InventoryRepositoryImpl(gh<_i248.InventoryRemoteDataSource>()),
-    );
-    gh.lazySingleton<_i330.AccountingRepository>(
-      () => _i930.AccountingRepositoryImpl(
-        gh<_i718.AccountingRemoteDataSource>(),
-      ),
-    );
+        () => _i153.AuthRepositoryImpl(gh<_i107.AuthRemoteDataSource>()));
+    gh.lazySingleton<_i941.AddClientSupplierUseCase>(() =>
+        _i941.AddClientSupplierUseCase(gh<_i162.ClientSupplierRepository>()));
+    gh.lazySingleton<_i39.GetClientsSuppliersUseCase>(() =>
+        _i39.GetClientsSuppliersUseCase(gh<_i162.ClientSupplierRepository>()));
+    gh.lazySingleton<_i422.InventoryRepository>(() =>
+        _i572.InventoryRepositoryImpl(gh<_i248.InventoryRemoteDataSource>()));
+    gh.lazySingleton<_i330.AccountingRepository>(() =>
+        _i930.AccountingRepositoryImpl(gh<_i718.AccountingRemoteDataSource>()));
     gh.lazySingleton<_i811.AddCategoryUseCase>(
-      () => _i811.AddCategoryUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i811.AddCategoryUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i415.AddUnitUseCase>(
-      () => _i415.AddUnitUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i415.AddUnitUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i723.DeleteCategoryUseCase>(
-      () => _i723.DeleteCategoryUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i723.DeleteCategoryUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i630.DeleteUnitUseCase>(
-      () => _i630.DeleteUnitUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i630.DeleteUnitUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i815.GetCategoriesUseCase>(
-      () => _i815.GetCategoriesUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i815.GetCategoriesUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i935.GetUnitsUseCase>(
-      () => _i935.GetUnitsUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i935.GetUnitsUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i351.UpdateCategoryUseCase>(
-      () => _i351.UpdateCategoryUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i351.UpdateCategoryUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i457.UpdateUnitUseCase>(
-      () => _i457.UpdateUnitUseCase(gh<_i422.InventoryRepository>()),
-    );
+        () => _i457.UpdateUnitUseCase(gh<_i422.InventoryRepository>()));
     gh.lazySingleton<_i188.LoginUseCase>(
-      () => _i188.LoginUseCase(gh<_i787.AuthRepository>()),
-    );
-    gh.factory<_i586.ClientSupplierCubit>(
-      () => _i586.ClientSupplierCubit(
-        gh<_i39.GetClientsSuppliersUseCase>(),
-        gh<_i941.AddClientSupplierUseCase>(),
-      ),
-    );
-    gh.factory<_i506.InventorySettingsCubit>(
-      () => _i506.InventorySettingsCubit(
-        gh<_i815.GetCategoriesUseCase>(),
-        gh<_i811.AddCategoryUseCase>(),
-        gh<_i723.DeleteCategoryUseCase>(),
-        gh<_i935.GetUnitsUseCase>(),
-        gh<_i415.AddUnitUseCase>(),
-        gh<_i630.DeleteUnitUseCase>(),
-        gh<_i351.UpdateCategoryUseCase>(),
-        gh<_i457.UpdateUnitUseCase>(),
-      ),
-    );
+        () => _i188.LoginUseCase(gh<_i787.AuthRepository>()));
+    gh.factory<_i586.ClientSupplierCubit>(() => _i586.ClientSupplierCubit(
+          gh<_i39.GetClientsSuppliersUseCase>(),
+          gh<_i941.AddClientSupplierUseCase>(),
+        ));
+    gh.factory<_i506.InventorySettingsCubit>(() => _i506.InventorySettingsCubit(
+          gh<_i815.GetCategoriesUseCase>(),
+          gh<_i811.AddCategoryUseCase>(),
+          gh<_i723.DeleteCategoryUseCase>(),
+          gh<_i935.GetUnitsUseCase>(),
+          gh<_i415.AddUnitUseCase>(),
+          gh<_i630.DeleteUnitUseCase>(),
+          gh<_i351.UpdateCategoryUseCase>(),
+          gh<_i457.UpdateUnitUseCase>(),
+        ));
     gh.lazySingleton<_i234.AddProductUseCase>(
-      () => _i234.AddProductUseCase(gh<_i437.ProductRepository>()),
-    );
+        () => _i234.AddProductUseCase(gh<_i437.ProductRepository>()));
     gh.lazySingleton<_i789.DeleteProductUseCase>(
-      () => _i789.DeleteProductUseCase(gh<_i437.ProductRepository>()),
-    );
+        () => _i789.DeleteProductUseCase(gh<_i437.ProductRepository>()));
     gh.lazySingleton<_i340.GetProductsUseCase>(
-      () => _i340.GetProductsUseCase(gh<_i437.ProductRepository>()),
-    );
+        () => _i340.GetProductsUseCase(gh<_i437.ProductRepository>()));
     gh.lazySingleton<_i855.UpdateProductUseCase>(
-      () => _i855.UpdateProductUseCase(gh<_i437.ProductRepository>()),
-    );
+        () => _i855.UpdateProductUseCase(gh<_i437.ProductRepository>()));
     gh.lazySingleton<_i434.SalesRepository>(
-      () => _i779.SalesRepositoryImpl(gh<_i37.SalesRemoteDataSource>()),
-    );
-    gh.factory<_i750.DailyReportCubit>(
-      () => _i750.DailyReportCubit(
-        gh<_i434.SalesRepository>(),
-        gh<_i422.InventoryRepository>(),
-        gh<_i162.ClientSupplierRepository>(),
-        gh<_i839.PdfReportService>(),
-      ),
-    );
-    gh.factory<_i445.ProductCubit>(
-      () => _i445.ProductCubit(
-        gh<_i340.GetProductsUseCase>(),
-        gh<_i234.AddProductUseCase>(),
-        gh<_i855.UpdateProductUseCase>(),
-        gh<_i789.DeleteProductUseCase>(),
-      ),
-    );
-    gh.lazySingleton<_i747.GetGeneralBalancesUseCase>(
-      () =>
-          _i747.GetGeneralBalancesUseCase(gh<_i162.ClientSupplierRepository>()),
-    );
-    gh.factory<_i629.DashboardCubit>(
-      () => _i629.DashboardCubit(
-        gh<_i434.SalesRepository>(),
-        gh<_i437.ProductRepository>(),
-        gh<_i162.ClientSupplierRepository>(),
-      ),
-    );
+        () => _i779.SalesRepositoryImpl(gh<_i37.SalesRemoteDataSource>()));
+    gh.factory<_i750.DailyReportCubit>(() => _i750.DailyReportCubit(
+          gh<_i434.SalesRepository>(),
+          gh<_i422.InventoryRepository>(),
+          gh<_i162.ClientSupplierRepository>(),
+          gh<_i839.PdfReportService>(),
+        ));
+    gh.factory<_i445.ProductCubit>(() => _i445.ProductCubit(
+          gh<_i340.GetProductsUseCase>(),
+          gh<_i234.AddProductUseCase>(),
+          gh<_i855.UpdateProductUseCase>(),
+          gh<_i789.DeleteProductUseCase>(),
+        ));
+    gh.lazySingleton<_i747.GetGeneralBalancesUseCase>(() =>
+        _i747.GetGeneralBalancesUseCase(gh<_i162.ClientSupplierRepository>()));
+    gh.factory<_i629.DashboardCubit>(() => _i629.DashboardCubit(
+          gh<_i434.SalesRepository>(),
+          gh<_i437.ProductRepository>(),
+          gh<_i162.ClientSupplierRepository>(),
+        ));
     gh.factory<_i841.LoginCubit>(
-      () => _i841.LoginCubit(gh<_i188.LoginUseCase>()),
-    );
+        () => _i841.LoginCubit(gh<_i188.LoginUseCase>()));
     gh.lazySingleton<_i215.AuthBloc>(
-      () => _i215.AuthBloc(gh<_i787.AuthRepository>()),
-    );
-    gh.factory<_i1030.GeneralBalancesCubit>(
-      () => _i1030.GeneralBalancesCubit(
-        gh<_i747.GetGeneralBalancesUseCase>(),
-        gh<_i839.PdfReportService>(),
-      ),
-    );
+        () => _i215.AuthBloc(gh<_i787.AuthRepository>()));
+    gh.factory<_i45.AccountStatementCubit>(() => _i45.AccountStatementCubit(
+          gh<_i434.SalesRepository>(),
+          gh<_i1070.VoucherRepository>(),
+        ));
+    gh.factory<_i1030.GeneralBalancesCubit>(() => _i1030.GeneralBalancesCubit(
+          gh<_i747.GetGeneralBalancesUseCase>(),
+          gh<_i839.PdfReportService>(),
+        ));
+    gh.factory<_i719.ItemMovementCubit>(() => _i719.ItemMovementCubit(
+          gh<_i434.SalesRepository>(),
+          gh<_i422.InventoryRepository>(),
+          gh<_i162.ClientSupplierRepository>(),
+        ));
     gh.lazySingleton<_i567.GenerateAccountStatementUseCase>(
-      () => _i567.GenerateAccountStatementUseCase(
-        gh<_i434.SalesRepository>(),
-        gh<_i330.AccountingRepository>(),
-      ),
-    );
+        () => _i567.GenerateAccountStatementUseCase(
+              gh<_i434.SalesRepository>(),
+              gh<_i330.AccountingRepository>(),
+            ));
     gh.lazySingleton<_i61.AddInvoiceUseCase>(
-      () => _i61.AddInvoiceUseCase(gh<_i434.SalesRepository>()),
-    );
+        () => _i61.AddInvoiceUseCase(gh<_i434.SalesRepository>()));
     gh.lazySingleton<_i661.DeleteInvoiceUseCase>(
-      () => _i661.DeleteInvoiceUseCase(gh<_i434.SalesRepository>()),
-    );
+        () => _i661.DeleteInvoiceUseCase(gh<_i434.SalesRepository>()));
     gh.lazySingleton<_i878.GetInvoiceByNumberUseCase>(
-      () => _i878.GetInvoiceByNumberUseCase(gh<_i434.SalesRepository>()),
-    );
+        () => _i878.GetInvoiceByNumberUseCase(gh<_i434.SalesRepository>()));
     gh.lazySingleton<_i163.GetInvoicesUseCase>(
-      () => _i163.GetInvoicesUseCase(gh<_i434.SalesRepository>()),
-    );
+        () => _i163.GetInvoicesUseCase(gh<_i434.SalesRepository>()));
     gh.lazySingleton<_i781.SearchInvoicesUseCase>(
-      () => _i781.SearchInvoicesUseCase(gh<_i434.SalesRepository>()),
-    );
+        () => _i781.SearchInvoicesUseCase(gh<_i434.SalesRepository>()));
     gh.lazySingleton<_i1014.UpdateInvoiceUseCase>(
-      () => _i1014.UpdateInvoiceUseCase(gh<_i434.SalesRepository>()),
-    );
-    gh.factory<_i1069.InvoicesListCubit>(
-      () => _i1069.InvoicesListCubit(
-        gh<_i163.GetInvoicesUseCase>(),
-        gh<_i781.SearchInvoicesUseCase>(),
-        gh<_i661.DeleteInvoiceUseCase>(),
-      ),
-    );
-    gh.factory<_i165.AccountingCubit>(
-      () => _i165.AccountingCubit(
-        gh<_i330.AccountingRepository>(),
-        gh<_i878.GetInvoiceByNumberUseCase>(),
-      ),
-    );
-    gh.factory<_i600.ReportsCubit>(
-      () => _i600.ReportsCubit(
-        gh<_i567.GenerateAccountStatementUseCase>(),
-        gh<_i839.PdfReportService>(),
-      ),
-    );
-    gh.factory<_i740.SalesCubit>(
-      () => _i740.SalesCubit(
-        gh<_i61.AddInvoiceUseCase>(),
-        gh<_i1014.UpdateInvoiceUseCase>(),
-        gh<_i340.GetProductsUseCase>(),
-        gh<_i39.GetClientsSuppliersUseCase>(),
-        gh<_i878.GetInvoiceByNumberUseCase>(),
-      ),
-    );
+        () => _i1014.UpdateInvoiceUseCase(gh<_i434.SalesRepository>()));
+    gh.factory<_i1069.InvoicesListCubit>(() => _i1069.InvoicesListCubit(
+          gh<_i163.GetInvoicesUseCase>(),
+          gh<_i781.SearchInvoicesUseCase>(),
+          gh<_i661.DeleteInvoiceUseCase>(),
+        ));
+    gh.factory<_i165.AccountingCubit>(() => _i165.AccountingCubit(
+          gh<_i330.AccountingRepository>(),
+          gh<_i878.GetInvoiceByNumberUseCase>(),
+        ));
+    gh.factory<_i600.ReportsCubit>(() => _i600.ReportsCubit(
+          gh<_i567.GenerateAccountStatementUseCase>(),
+          gh<_i839.PdfReportService>(),
+        ));
+    gh.factory<_i740.SalesCubit>(() => _i740.SalesCubit(
+          gh<_i61.AddInvoiceUseCase>(),
+          gh<_i1014.UpdateInvoiceUseCase>(),
+          gh<_i340.GetProductsUseCase>(),
+          gh<_i39.GetClientsSuppliersUseCase>(),
+          gh<_i878.GetInvoiceByNumberUseCase>(),
+        ));
     return this;
   }
 }

@@ -24,8 +24,9 @@ import '../../features/sales/presentation/pages/pos_page.dart';
 import '../../features/sales/presentation/pages/invoices_list_page.dart';
 import '../../features/accounting/presentation/pages/voucher_form_page.dart';
 import '../../features/accounting/presentation/pages/vouchers_list_page.dart';
-// [NEW] استيراد صفحة التقارير
 import '../../features/reports/presentation/pages/account_statement_page.dart';
+// [NEW] استيراد صفحة تقرير حركة الأصناف
+import '../../features/reports/presentation/pages/item_movement_report_page.dart';
 
 final goRouter = GoRouter(
   initialLocation: '/home',
@@ -65,40 +66,31 @@ final goRouter = GoRouter(
       builder: (context, state) => const VouchersListPage(),
     ),
 
-    // GoRoute(
-    //   path: '/reports',
-    //   builder: (context, state) =>
-    //       const ReportsPage(), // [NEW] الصفحة الرئيسية للتقارير
-    // ),
-    // GoRoute(
-    //   path: '/reports/statement',
-    //   builder: (context, state) {
-    //     final client = state.extra as ClientSupplierEntity;
-    //     return AccountStatementPage(clientSupplier: client);
-    //   },
-    // ),
-
+    // --- التقارير ---
     GoRoute(
       path: '/reports',
       builder: (context, state) => const ReportsPage(),
     ),
-    // [NEW] مسار تقرير الأرصدة
     GoRoute(
       path: '/reports/general-balances',
       builder: (context, state) => const GeneralBalancesPage(),
     ),
-        GoRoute(
+    GoRoute(
       path: '/reports/statement',
       builder: (context, state) {
-        final client = state.extra as ClientSupplierEntity;
-        return AccountStatementPage(clientSupplier: client);
+        // [UPDATED] لا ننتظر أي معامل، الصفحة تدير نفسها بنفسها
+        return const AccountStatementPage();
       },
     ),
     GoRoute(
-        path: '/reports/daily-sales',
-        builder: (context, state) => const DailyReportPage(),
-      ),
-
+      path: '/reports/daily-sales',
+      builder: (context, state) => const DailyReportPage(),
+    ),
+    // [NEW] مسار تقرير حركة الأصناف
+    GoRoute(
+      path: '/reports/item-movement',
+      builder: (context, state) => const ItemMovementReportPage(),
+    ),
 
     // --- العملاء والموردين ---
     GoRoute(
@@ -129,7 +121,6 @@ final goRouter = GoRouter(
         GoRoute(
           path: 'voucher',
           builder: (context, state) {
-            // الحالة 1: تعديل سند موجود
             if (state.extra is VoucherEntity) {
               final voucher = state.extra as VoucherEntity;
               final mockClient = ClientSupplierEntity(
@@ -150,7 +141,6 @@ final goRouter = GoRouter(
                 voucherToEdit: voucher,
               );
             }
-            // الحالة 2: إنشاء سند جديد
             final entity = state.extra as ClientSupplierEntity;
             return VoucherFormPage(clientSupplier: entity);
           },

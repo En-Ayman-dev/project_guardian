@@ -49,15 +49,22 @@ class _LoginFormState extends State<_LoginForm> {
       // إغلاق لوحة المفاتيح عند البدء
       FocusScope.of(context).unfocus();
       context.read<LoginCubit>().loginSubmitted(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       // [NEW] إغلاق لوحة المفاتيح عند النقر خارج الحقول
@@ -95,7 +102,9 @@ class _LoginFormState extends State<_LoginForm> {
                         Text(
                           l10n.appName,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.displayLarge
+                          style: Theme.of(context)
+                              .textTheme
+                              .displayLarge
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
@@ -107,28 +116,23 @@ class _LoginFormState extends State<_LoginForm> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          textInputAction:
-                              TextInputAction.next, // [NEW] زر "التالي"
+                          textInputAction: TextInputAction.next,
                           autofillHints: const [
                             AutofillHints.email,
-                          ], // [NEW] تلميح للنظام
+                          ],
                           decoration: InputDecoration(
                             labelText: l10n.email,
                             prefixIcon: const Icon(Icons.email_outlined),
-                            border:
-                                const OutlineInputBorder(), // [IMPROVED] حدود واضحة
+                            border: const OutlineInputBorder(),
                           ),
                           onFieldSubmitted: (_) {
-                            // [NEW] الانتقال لحقل كلمة المرور عند الضغط على Enter
-                            FocusScope.of(
-                              context,
-                            ).requestFocus(_passwordFocusNode);
+                            FocusScope.of(context)
+                                .requestFocus(_passwordFocusNode);
                           },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return l10n.requiredField;
                             }
-                            // [OPTIONAL] يمكن إضافة تحقق بسيط من صيغة الإيميل هنا
                             return null;
                           },
                         ),
@@ -137,13 +141,12 @@ class _LoginFormState extends State<_LoginForm> {
                         // Password Field
                         TextFormField(
                           controller: _passwordController,
-                          focusNode: _passwordFocusNode, // [NEW] ربط التركيز
+                          focusNode: _passwordFocusNode,
                           obscureText: state.isPasswordObscured,
-                          textInputAction:
-                              TextInputAction.done, // [NEW] زر "تم"
+                          textInputAction: TextInputAction.done,
                           autofillHints: const [
                             AutofillHints.password,
-                          ], // [NEW]
+                          ],
                           decoration: InputDecoration(
                             labelText: l10n.password,
                             prefixIcon: const Icon(Icons.lock_outline),
@@ -161,8 +164,7 @@ class _LoginFormState extends State<_LoginForm> {
                               },
                             ),
                           ),
-                          onFieldSubmitted: (_) =>
-                              _submitLogin(), // [NEW] تنفيذ الدخول مباشرة
+                          onFieldSubmitted: (_) => _submitLogin(),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return l10n.requiredField;
@@ -174,7 +176,7 @@ class _LoginFormState extends State<_LoginForm> {
 
                         // Login Button
                         SizedBox(
-                          height: 50, // [IMPROVED] ارتفاع زر مريح للمس
+                          height: 50,
                           child: ElevatedButton(
                             onPressed: state.isLoading ? null : _submitLogin,
                             child: state.isLoading

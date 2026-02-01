@@ -1,0 +1,9 @@
+{
+  "appName": "Project Guardian",
+  "login": "تسجيل الدخول",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "requiredField": "هذا الحقل مطلوب",
+  "serverError": "خطأ في الخادم",
+  "networkError": "تحقق من اتصال الإنترنت"
+}

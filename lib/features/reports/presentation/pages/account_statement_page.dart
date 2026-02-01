@@ -1,558 +1,316 @@
-// [phase_3] correction - Full File
-// file: lib/features/reports/presentation/pages/account_statement_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/pdf_report_service.dart';
 import '../../../clients_suppliers/domain/entities/client_supplier_entity.dart';
-import '../../domain/entities/statement_line_entity.dart';
-import '../manager/reports_cubit.dart';
-import '../manager/reports_state.dart';
+import '../../../clients_suppliers/domain/entities/enums/client_type.dart';
+import '../../../clients_suppliers/presentation/manager/client_supplier_cubit.dart';
+import '../../../clients_suppliers/presentation/manager/client_supplier_state.dart';
+import '../manager/account_statement_cubit.dart';
+import '../manager/account_statement_state.dart';
 
 class AccountStatementPage extends StatelessWidget {
-  final ClientSupplierEntity clientSupplier;
-
-  const AccountStatementPage({super.key, required this.clientSupplier});
+  const AccountStatementPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          getIt<ReportsCubit>()
-            ..getAccountStatement(clientSupplierId: clientSupplier.id),
-      child: _StatementView(clientSupplier: clientSupplier),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => getIt<AccountStatementCubit>()),
+        BlocProvider(
+            create: (context) =>
+                getIt<ClientSupplierCubit>()..getList(ClientType.client)),
+      ],
+      child: const _AccountStatementView(),
     );
   }
 }
 
-class _StatementView extends StatefulWidget {
-  final ClientSupplierEntity clientSupplier;
-
-  const _StatementView({required this.clientSupplier});
+class _AccountStatementView extends StatefulWidget {
+  const _AccountStatementView();
 
   @override
-  State<_StatementView> createState() => _StatementViewState();
+  State<_AccountStatementView> createState() => _AccountStatementViewState();
 }
 
-class _StatementViewState extends State<_StatementView> {
-  DateTime? _startDate;
-  DateTime? _endDate;
+class _AccountStatementViewState extends State<_AccountStatementView> {
+  ClientSupplierEntity? _selectedClient;
+  final TextEditingController _searchCtrl = TextEditingController();
+  ClientType _searchType = ClientType.client;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onClientSelected(ClientSupplierEntity client) {
+    setState(() {
+      _selectedClient = client;
+      _searchCtrl.text = client.name;
+    });
+    FocusScope.of(context).unfocus();
+    context.read<AccountStatementCubit>().generateStatement(client);
+  }
+
+  // [NEW] دالة الطباعة
+  Future<void> _printPdf(AccountStatementLoaded state) async {
+    if (_selectedClient == null) return;
+
+    final pdfService = getIt<PdfReportService>();
+    await pdfService.generateAccountStatementPdf(
+      clientName: _selectedClient!.name,
+      clientPhone: _selectedClient!.phone,
+      date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      rows: state.rows,
+      totalDebit: state.totalDebit,
+      totalCredit: state.totalCredit,
+      finalBalance: state.finalBalance,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // استخدام MaterialColor للوصول إلى التدرجات (shades)
-    const primaryColor = Colors.indigo;
-
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(
-          'كشف حساب: ${widget.clientSupplier.name}',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('كشف حساب تفصيلي'),
         actions: [
-          // زر الطباعة / التصدير
-          BlocBuilder<ReportsCubit, ReportsState>(
+          // زر الطباعة
+          BlocBuilder<AccountStatementCubit, AccountStatementState>(
             builder: (context, state) {
-              final isLoaded = state.maybeWhen(
-                statementLoaded: (_) => true,
-                orElse: () => false,
-              );
+              if (state is AccountStatementLoaded && _selectedClient != null) {
+                return IconButton(
+                  icon: const Icon(Icons.print),
+                  onPressed: () => _printPdf(state),
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildSearchSection(context),
+          const Divider(height: 1, thickness: 2),
+          if (_selectedClient != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: Colors.blue.shade50,
+              child: Text(
+                'العميل: ${_selectedClient!.name} | الهاتف: ${_selectedClient!.phone}',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: Colors.blue),
+              ),
+            ),
+          Expanded(
+            child: BlocBuilder<AccountStatementCubit, AccountStatementState>(
+              builder: (context, state) {
+                if (_selectedClient == null) {
+                  return const Center(child: Text('اختر عميلاً لعرض الكشف'));
+                }
+                if (state is AccountStatementLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state is AccountStatementError) {
+                  return Center(
+                      child: Text(state.message,
+                          style: const TextStyle(color: Colors.red)));
+                }
+                if (state is AccountStatementLoaded) {
+                  if (state.rows.isEmpty) {
+                    return const Center(child: Text('لا توجد حركات'));
+                  }
+                  return _buildDataTable(state);
+                }
+                return const SizedBox();
+              },
+            ),
+          ),
+          BlocBuilder<AccountStatementCubit, AccountStatementState>(
+            builder: (context, state) {
+              if (state is AccountStatementLoaded && _selectedClient != null) {
+                return _buildSummaryFooter(state);
+              }
+              return const SizedBox();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
-              return IconButton(
-                icon: const Icon(Icons.print_rounded),
-                tooltip: 'تصدير PDF',
-                onPressed: isLoaded
-                    ? () {
-                        final lines = state.maybeWhen(
-                          statementLoaded: (l) => l,
-                          orElse: () => <StatementLineEntity>[],
-                        );
-
-                        if (lines.isNotEmpty) {
-                          context.read<ReportsCubit>().exportStatementToPdf(
-                            widget.clientSupplier,
-                            lines,
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('لا توجد بيانات للطباعة'),
-                            ),
-                          );
-                        }
-                      }
-                    : null,
+  Widget _buildSearchSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Column(
+        children: [
+          Row(children: [
+            Expanded(child: _buildTypeButton('عملاء', ClientType.client)),
+            const SizedBox(width: 10),
+            Expanded(child: _buildTypeButton('موردين', ClientType.supplier)),
+          ]),
+          const SizedBox(height: 12),
+          BlocBuilder<ClientSupplierCubit, ClientSupplierState>(
+            builder: (context, state) {
+              List<ClientSupplierEntity> list = [];
+              state.maybeWhen(
+                  success: (l) => list = l, orElse: () => list = []);
+              return Autocomplete<ClientSupplierEntity>(
+                optionsBuilder: (v) {
+                  if (v.text.isEmpty) return list;
+                  return list.where((c) =>
+                      c.name.toLowerCase().contains(v.text.toLowerCase()));
+                },
+                displayStringForOption: (opt) => opt.name,
+                onSelected: _onClientSelected,
+                fieldViewBuilder: (ctx, ctrl, focus, submit) {
+                  if (_searchCtrl.text != ctrl.text) {
+                    ctrl.text = _searchCtrl.text;
+                  }
+                  return TextField(
+                    controller: ctrl,
+                    focusNode: focus,
+                    decoration: InputDecoration(
+                      labelText: 'بحث بالاسم...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      suffixIcon: _selectedClient != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedClient = null;
+                                  _searchCtrl.clear();
+                                  ctrl.clear();
+                                });
+                              })
+                          : null,
+                    ),
+                  );
+                },
               );
             },
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // 1. Header Background
-          Container(
-            height: 220,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [primaryColor.shade800, primaryColor.shade500],
-              ),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-          ),
+    );
+  }
 
-          // 2. Main Content
-          SafeArea(
-            child: Column(
-              children: [
-                // --- Date Filters ---
-                _buildDateFilters(context),
-
-                const SizedBox(height: 10),
-
-                // --- Report Body ---
-                Expanded(
-                  child: BlocBuilder<ReportsCubit, ReportsState>(
-                    builder: (context, state) {
-                      return state.maybeWhen(
-                        loading: () => const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        ),
-                        error: (msg) => Center(
-                          child: Text(
-                            msg,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        statementLoaded: (lines) {
-                          // حساب ملخص الحركات (باستثناء الرصيد الافتتاحي لعرض حركة الفترة بدقة)
-                          final periodLines = lines.where(
-                            (l) => l.description != 'رصيد سابق / افتتاحي',
-                          );
-
-                          final totalDebit = periodLines.fold(
-                            0.0,
-                            (sum, line) => sum + line.debit,
-                          );
-                          final totalCredit = periodLines.fold(
-                            0.0,
-                            (sum, line) => sum + line.credit,
-                          );
-
-                          // الرصيد النهائي هو رصيد آخر عملية (يشمل الافتتاحي + الحركات)
-                          final finalBalance = lines.isNotEmpty
-                              ? lines.last.balance
-                              : 0.0;
-
-                          return Column(
-                            children: [
-                              // Summary Card
-                              _buildSummaryCard(
-                                totalDebit,
-                                totalCredit,
-                                finalBalance,
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              // Transactions List
-                              Expanded(
-                                child: lines.isEmpty
-                                    ? _buildEmptyState()
-                                    : ListView.separated(
-                                        padding: const EdgeInsets.fromLTRB(
-                                          16,
-                                          0,
-                                          16,
-                                          20,
-                                        ),
-                                        itemCount: lines.length,
-                                        separatorBuilder: (context, index) =>
-                                            const SizedBox(height: 8),
-                                        itemBuilder: (context, index) {
-                                          return _StatementLineTile(
-                                            line: lines[index],
-                                          );
-                                        },
-                                      ),
-                              ),
-                            ],
-                          );
-                        },
-                        orElse: () => const SizedBox.shrink(),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  Widget _buildTypeButton(String label, ClientType type) {
+    final isSelected = _searchType == type;
+    return ElevatedButton.icon(
+      onPressed: () {
+        setState(() {
+          _searchType = type;
+          _selectedClient = null;
+          _searchCtrl.clear();
+        });
+        context.read<ClientSupplierCubit>().getList(type);
+      },
+      icon: Icon(
+          type == ClientType.client ? Icons.person : Icons.local_shipping,
+          color: isSelected ? Colors.white : Colors.grey),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? Colors.indigo : Colors.grey.shade200,
+        foregroundColor: isSelected ? Colors.white : Colors.black,
       ),
     );
   }
 
-  Widget _buildDateFilters(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: _datePickerButton(
-              context,
-              label: _startDate == null
-                  ? 'من تاريخ'
-                  : DateFormat('yyyy-MM-dd').format(_startDate!),
-              icon: Icons.calendar_today,
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _startDate ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                );
-                // استخدام mounted للتحقق قبل استخدام context بعد الـ await
-                if (date != null && context.mounted) {
-                  setState(() => _startDate = date);
-                  _refreshReport(context);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _datePickerButton(
-              context,
-              label: _endDate == null
-                  ? 'إلى تاريخ'
-                  : DateFormat('yyyy-MM-dd').format(_endDate!),
-              icon: Icons.event,
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _endDate ?? DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                );
-                if (date != null && context.mounted) {
-                  setState(() => _endDate = date);
-                  _refreshReport(context);
-                }
-              },
-            ),
-          ),
-          if (_startDate != null || _endDate != null)
-            IconButton(
-              onPressed: () {
-                setState(() {
-                  _startDate = null;
-                  _endDate = null;
-                });
-                _refreshReport(context);
-              },
-              // استبدال withOpacity بـ withValues
-              icon: Icon(
-                Icons.clear,
-                color: Colors.white.withValues(alpha: 0.7),
-              ),
-              tooltip: 'مسح الفلتر',
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _datePickerButton(
-    BuildContext context, {
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.2),
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _refreshReport(BuildContext context) {
-    context.read<ReportsCubit>().getAccountStatement(
-      clientSupplierId: widget.clientSupplier.id,
-      startDate: _startDate,
-      endDate: _endDate,
-    );
-  }
-
-  Widget _buildSummaryCard(double debit, double credit, double balance) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildSummaryItem('إجمالي مدين (فترة)', debit, Colors.black87),
-            Container(width: 1, height: 40, color: Colors.grey.shade300),
-            _buildSummaryItem('إجمالي دائن (فترة)', credit, Colors.black87),
-            Container(width: 1, height: 40, color: Colors.grey.shade300),
-            _buildSummaryItem(
-              'الرصيد النهائي',
-              balance,
-              balance >= 0 ? Colors.green.shade700 : Colors.red.shade700,
-              isBold: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryItem(
-    String label,
-    double value,
-    Color color, {
-    bool isBold = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value.toStringAsFixed(2),
-          style: TextStyle(
-            fontSize: isBold ? 18 : 15,
-            color: color,
-            fontWeight: isBold ? FontWeight.w900 : FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_long_rounded,
-            size: 64,
-            color: Colors.grey.shade300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'لا توجد حركات في هذه الفترة',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatementLineTile extends StatelessWidget {
-  final StatementLineEntity line;
-
-  const _StatementLineTile({required this.line});
-
-  @override
-  Widget build(BuildContext context) {
-    // 1. التحقق مما إذا كان السطر هو "رصيد افتتاحي" لعرضه بشكل مميز
-    if (line.description == 'رصيد سابق / افتتاحي') {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.amber.shade50, // خلفية صفراء فاتحة للتمييز
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.amber.shade200),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.history_edu_rounded,
-                    color: Colors.amber.shade900,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'رصيد سابق (افتتاحي)',
+  Widget _buildDataTable(AccountStatementLoaded state) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.grey.shade200),
+          columnSpacing: 20,
+          border: TableBorder.all(color: Colors.grey.shade300),
+          columns: const [
+            DataColumn(
+                label: Text('التاريخ',
+                    style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(
+                label: Text('رقم المستند',
+                    style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(
+                label: Text('البيان',
+                    style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(
+                label: Text('مدين (+)',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.amber.shade900,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                '${line.balance.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  color: Colors.amber.shade900,
-                ),
-              ),
-            ],
-          ),
+                        fontWeight: FontWeight.bold, color: Colors.green))),
+            DataColumn(
+                label: Text('دائن (-)',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.red))),
+            DataColumn(
+                label: Text('الرصيد',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.blue))),
+          ],
+          rows: state.rows.map((row) {
+            return DataRow(
+              cells: [
+                DataCell(Text(DateFormat('yyyy-MM-dd').format(row.date))),
+                DataCell(Text(row.documentNumber)),
+                DataCell(Text(row.description)),
+                DataCell(Text(row.debit > 0 ? row.debit.toStringAsFixed(2) : '',
+                    style: const TextStyle(color: Colors.green))),
+                DataCell(Text(
+                    row.credit > 0 ? row.credit.toStringAsFixed(2) : '',
+                    style: const TextStyle(color: Colors.red))),
+                DataCell(Text(row.balance.toStringAsFixed(2),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: row.balance >= 0 ? Colors.blue : Colors.red))),
+              ],
+            );
+          }).toList(),
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    // 2. العرض القياسي للحركات العادية
-    final bool isDebit = line.debit > 0;
-    final amount = isDebit ? line.debit : line.credit;
-    final amountColor = isDebit
-        ? Colors.orange.shade800
-        : Colors.green.shade700;
-    final icon = isDebit
-        ? Icons.arrow_outward_rounded
-        : Icons.arrow_downward_rounded;
-    final iconBg = isDebit ? Colors.orange.shade50 : Colors.green.shade50;
-
+  Widget _buildSummaryFooter(AccountStatementLoaded state) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+      color: Colors.grey.shade100,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _summaryItem('إجمالي مدين', state.totalDebit, Colors.green),
+              _summaryItem('إجمالي دائن', state.totalCredit, Colors.red),
+              _summaryItem('الرصيد النهائي', state.finalBalance, Colors.blue),
+            ],
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          children: [
-            Column(
-              children: [
-                Text(
-                  DateFormat('dd').format(line.date),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  DateFormat('MM/yy').format(line.date),
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-            Container(
-              width: 1,
-              height: 30,
-              color: Colors.grey.shade200,
-              margin: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-              child: Icon(icon, color: amountColor, size: 16),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    line.description,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    line.refNumber,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade500,
-                      fontFamily: 'Courier',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  amount.toStringAsFixed(2),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: amountColor,
-                  ),
-                ),
-                Text(
-                  'رصيد: ${line.balance.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    );
+  }
+
+  Widget _summaryItem(String title, double value, Color color) {
+    return Column(
+      children: [
+        Text(title,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+        const SizedBox(height: 4),
+        Text(value.toStringAsFixed(2),
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+      ],
     );
   }
 }

@@ -18,9 +18,8 @@ _ProductModel _$ProductModelFromJson(Map<String, dynamic> json) =>
           .toList(),
       stock: (json['stock'] as num?)?.toDouble() ?? 0.0,
       minStockAlert: (json['minStockAlert'] as num?)?.toInt() ?? 5,
-      createdAt: const TimestampConverter().fromJson(
-        json['createdAt'] as Object,
-      ),
+      createdAt:
+          const TimestampConverter().fromJson(json['createdAt'] as Object),
     );
 
 Map<String, dynamic> _$ProductModelToJson(_ProductModel instance) =>

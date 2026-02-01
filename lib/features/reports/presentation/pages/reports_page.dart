@@ -34,17 +34,14 @@ class _ReportsView extends StatelessWidget {
         // 1. كشف الحساب
         _ReportCard(
           title: 'كشف حساب عميل/مورد',
+          // ...
+          onTap: () {
+            // توجيه مباشر بسيط جداً
+            context.push('/reports/statement');
+          },
           subtitle: 'عرض وتصدير كشف حساب تفصيلي',
           icon: Icons.description_outlined,
           color: Colors.blue.shade700,
-          onTap: () {
-            // الانتقال لصفحة اختيار العميل أولاً (أو صفحة كشف الحساب مباشرة حسب تصميمك)
-            // هنا نفترض أننا نذهب لصفحة اختيار العميل ثم هو يوجهنا للكشف
-            // أو يمكن استخدام المسار المباشر إذا كنت تمرر العميل
-            context.push('/clients-suppliers?selectionMode=true');
-            // ملاحظة: تأكد من أن صفحة العملاء لديك تدعم وضع الاختيار (selectionMode)
-            // أو وجهه للمسار الذي تفضله
-          },
         ),
 
         const SizedBox(height: 12),
@@ -71,6 +68,14 @@ class _ReportsView extends StatelessWidget {
         ),
 
         // مساحة إضافية في الأسفل
+        const SizedBox(height: 40),
+        _ReportCard(
+          title: 'تقرير حركة الأصناف',
+          icon: Icons.history_edu,
+          color: Colors.orange,
+          onTap: () => context.push('/reports/item-movement'),
+          subtitle: 'عرض حركة الأصناف حسب الفواتير والعملاء',
+        ),
         const SizedBox(height: 40),
       ],
     );

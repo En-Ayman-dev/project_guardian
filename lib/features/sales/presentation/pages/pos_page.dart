@@ -116,8 +116,7 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
 
     return BlocConsumer<SalesCubit, SalesState>(
       listenWhen: (previous, current) {
-        final msgChanged =
-            previous.errorMessage != current.errorMessage ||
+        final msgChanged = previous.errorMessage != current.errorMessage ||
             previous.isSuccess != current.isSuccess;
         final originalInvoiceChanged =
             previous.originalInvoice != current.originalInvoice;
@@ -213,73 +212,147 @@ class _InvoiceEntryViewState extends State<_InvoiceEntryView> {
             },
           ),
           body: SafeArea(
-            child: Column(
-              children: [
-                // القسم العلوي (العميل والمنتج)
-                // نضعه في SingleChildScrollView للسماح بالتمرير إذا كانت الشاشة صغيرة جداً
-                // لكن نحدد ارتفاعاً أقصى باستخدام Constraints لضمان بقاء الجدول مرئياً
-                Container(
-                  constraints: const BoxConstraints(
-                    maxHeight: 280,
-                  ), // حدد ارتفاعاً مناسباً للأقسام العلوية
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        PosClientSection(
-                          invoiceType: state.invoiceType,
-                          clients: state.clients,
-                          selectedClient: _selectedClient,
-                          invoiceNumber: widget.invoiceToEdit?.invoiceNumber,
-                          invoiceDate:
-                              widget.invoiceToEdit?.date ?? DateTime.now(),
-                          onClientSelected: (selection) =>
-                              setState(() => _selectedClient = selection),
-                          searchController: _originalInvoiceSearchCtrl,
-                        ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 900;
 
-                        PosProductEntry(
-                          invoiceType: state.invoiceType,
-                          products: state.products,
-                        ),
-                      ],
+                return Column(
+                  children: [
+                    // =========================
+                    // 🔹 BODY
+                    // =========================
+                    Expanded(
+                      child: isWide
+                          ? Row(
+                              children: [
+                                // ===== LEFT: Client + Product =====
+                                SizedBox(
+                                  width: constraints.maxWidth * 0.4,
+                                  child: SingleChildScrollView(
+                                    keyboardDismissBehavior:
+                                        ScrollViewKeyboardDismissBehavior
+                                            .onDrag,
+                                    child: Column(
+                                      children: [
+                                        PosClientSection(
+                                          invoiceType: state.invoiceType,
+                                          clients: state.clients,
+                                          selectedClient: _selectedClient,
+                                          invoiceNumber: widget
+                                              .invoiceToEdit?.invoiceNumber,
+                                          invoiceDate:
+                                              widget.invoiceToEdit?.date ??
+                                                  DateTime.now(),
+                                          onClientSelected: (selection) =>
+                                              setState(() =>
+                                                  _selectedClient = selection),
+                                          searchController:
+                                              _originalInvoiceSearchCtrl,
+                                        ),
+                                        PosProductEntry(
+                                          invoiceType: state.invoiceType,
+                                          products: state.products,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                // ===== RIGHT: CART =====
+                                Expanded(
+                                  child: PosItemsTable(
+                                    items: state.cartItems,
+                                  ),
+                                ),
+                              ],
+                            )
+
+                          // =========================
+                          // 📱 MOBILE LAYOUT
+                          // =========================
+                          : Column(
+                              children: [
+                                // =========================
+                                // 🔹 القسم العلوي (مرن + Scroll)
+                                // =========================
+                                Flexible(
+                                  flex: 4,
+                                  child: SingleChildScrollView(
+                                    keyboardDismissBehavior:
+                                        ScrollViewKeyboardDismissBehavior
+                                            .onDrag,
+                                    child: Column(
+                                      children: [
+                                        PosClientSection(
+                                          invoiceType: state.invoiceType,
+                                          clients: state.clients,
+                                          selectedClient: _selectedClient,
+                                          invoiceNumber: widget
+                                              .invoiceToEdit?.invoiceNumber,
+                                          invoiceDate:
+                                              widget.invoiceToEdit?.date ??
+                                                  DateTime.now(),
+                                          onClientSelected: (selection) =>
+                                              setState(() =>
+                                                  _selectedClient = selection),
+                                          searchController:
+                                              _originalInvoiceSearchCtrl,
+                                        ),
+                                        PosProductEntry(
+                                          invoiceType: state.invoiceType,
+                                          products: state.products,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                // =========================
+                                // 🔹 جدول السلة (مرن)
+                                // =========================
+                                Expanded(
+                                  flex: 6,
+                                  child: PosItemsTable(
+                                    items: state.cartItems,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
-                  ),
-                ),
 
-                // الجدول يأخذ المساحة المتبقية
-                Expanded(child: PosItemsTable(items: state.cartItems)),
-
-                // الفوتر المالي
-                // [FIX] وضعنا الفوتر في الأسفل مباشرة
-                PosFinancialFooter(
-                  state: state,
-                  isEdit: isEdit,
-                  isReturn: isReturn,
-                  discountCtrl: _discountCtrl,
-                  paidCtrl: _paidCtrl,
-                  noteCtrl: _noteCtrl,
-                  onDiscountChanged: (val) =>
-                      context.read<SalesCubit>().setDiscount(val),
-                  onPaidChanged: (val) =>
-                      context.read<SalesCubit>().setPaidAmount(val),
-                  // [FIX] تمرير دالة تغيير النوع
-                  onPaymentTypeChanged: (type) =>
-                      context.read<SalesCubit>().setPaymentType(type),
-                  onSubmit:
-                      (state.cartItems.isNotEmpty && _selectedClient != null)
-                      ? () {
-                          context.read<SalesCubit>().submitInvoice(
-                            clientId: _selectedClient!.id,
-                            clientName: _selectedClient!.name,
-                            note: _noteCtrl.text,
-                          );
-                        }
-                      : null,
-                ),
-              ],
+                    // =========================
+                    // 🔹 FOOTER (ثابت دائمًا)
+                    // =========================
+                    PosFinancialFooter(
+                      state: state,
+                      isEdit: isEdit,
+                      isReturn: isReturn,
+                      discountCtrl: _discountCtrl,
+                      paidCtrl: _paidCtrl,
+                      noteCtrl: _noteCtrl,
+                      onDiscountChanged: (val) =>
+                          context.read<SalesCubit>().setDiscount(val),
+                      onPaidChanged: (val) =>
+                          context.read<SalesCubit>().setPaidAmount(val),
+                      onPaymentTypeChanged: (type) =>
+                          context.read<SalesCubit>().setPaymentType(type),
+                      onSubmit: (state.cartItems.isNotEmpty &&
+                              _selectedClient != null)
+                          ? () {
+                              context.read<SalesCubit>().submitInvoice(
+                                    clientId: _selectedClient!.id,
+                                    clientName: _selectedClient!.name,
+                                    note: _noteCtrl.text,
+                                  );
+                            }
+                          : null,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
+        
         );
       },
     );
