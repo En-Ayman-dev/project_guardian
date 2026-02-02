@@ -43,16 +43,18 @@ class GeneralBalancesCubit extends Cubit<GeneralBalancesState> {
 
       for (var e in entities) {
         if (e.type == ClientType.client) {
-          if (e.balance >= 0)
+          if (e.balance >= 0) {
             receivables += e.balance;
-          else
+          } else {
             payables += e.balance.abs();
+          }
         } else {
           // مورد
-          if (e.balance >= 0)
+          if (e.balance >= 0) {
             payables += e.balance; // دين علينا
-          else
+          } else {
             receivables += e.balance.abs(); // لنا عند المورد
+          }
         }
       }
 
@@ -104,9 +106,9 @@ class GeneralBalancesCubit extends Cubit<GeneralBalancesState> {
         final data = s.filteredEntities.map((e) {
           final isClient = e.type == ClientType.client;
           String status = '';
-          if (e.balance == 0)
+          if (e.balance == 0) {
             status = 'متزن';
-          else if (isClient)
+          } else if (isClient)
             status = e.balance > 0 ? 'مدين (لنا)' : 'دائن (علينا)';
           else
             status = e.balance > 0 ? 'دائن (علينا)' : 'مدين (لنا)';

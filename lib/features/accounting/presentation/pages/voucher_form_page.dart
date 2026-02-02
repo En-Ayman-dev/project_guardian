@@ -381,11 +381,13 @@ class _VoucherViewState extends State<_VoucherView> {
                                 ),
                               ),
                               validator: (value) {
-                                if (value == null || value.isEmpty)
+                                if (value == null || value.isEmpty) {
                                   return 'المبلغ مطلوب';
+                                }
                                 if (double.tryParse(value) == null ||
-                                    double.parse(value) <= 0)
+                                    double.parse(value) <= 0) {
                                   return 'قيمة غير صحيحة';
+                                }
                                 return null;
                               },
                             ),

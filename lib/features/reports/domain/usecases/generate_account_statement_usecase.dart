@@ -54,8 +54,9 @@ class GenerateAccountStatementUseCase {
                 double credit = 0;
                 // منطق: الفاتورة (مبيعات) = مدين للعميل (عليه فلوس)
                 // المرتجع = دائن للعميل (له فلوس)
-                if (inv.type == InvoiceType.sales) debit = inv.totalAmount;
-                else if (inv.type == InvoiceType.salesReturn) credit = inv.totalAmount;
+                if (inv.type == InvoiceType.sales) {
+                  debit = inv.totalAmount;
+                } else if (inv.type == InvoiceType.salesReturn) credit = inv.totalAmount;
                 else if (inv.type == InvoiceType.purchase) credit = inv.totalAmount;
                 else if (inv.type == InvoiceType.purchaseReturn) debit = inv.totalAmount;
 
@@ -82,8 +83,11 @@ class GenerateAccountStatementUseCase {
                 double credit = 0;
                 // سند قبض (استلمنا منه) = دائن (نقص رصيده)
                 // سند صرف (أعطيناه) = مدين (زاد رصيده)
-                if (v.type == VoucherType.receipt) credit = v.amount;
-                else debit = v.amount;
+                if (v.type == VoucherType.receipt) {
+                  credit = v.amount;
+                } else {
+                  debit = v.amount;
+                }
 
                 allTransactions.add(_TempTransaction(
                   date: v.date,

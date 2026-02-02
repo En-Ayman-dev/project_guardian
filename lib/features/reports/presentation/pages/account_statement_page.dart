@@ -231,7 +231,7 @@ class _AccountStatementViewState extends State<_AccountStatementView> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: MaterialStateProperty.all(Colors.grey.shade200),
+          headingRowColor: WidgetStateProperty.all(Colors.grey.shade200),
           columnSpacing: 20,
           border: TableBorder.all(color: Colors.grey.shade300),
           columns: const [

@@ -26,7 +26,7 @@ class _DailyReportView extends StatefulWidget {
 
 class _DailyReportViewState extends State<_DailyReportView> {
   DateTime _selectedDate = DateTime.now();
-  List<ProductEntity> _selectedProducts = [];
+  final List<ProductEntity> _selectedProducts = [];
 
   @override
   Widget build(BuildContext context) {

@@ -651,15 +651,18 @@ class _ItemMovementTabState extends State<_ItemMovementTab>
           Expanded(
             child: BlocBuilder<ItemMovementCubit, ItemMovementState>(
               builder: (context, state) {
-                if (state is ItemMovementLoading)
+                if (state is ItemMovementLoading) {
                   return const Center(child: CircularProgressIndicator());
-                if (state is ItemMovementError)
+                }
+                if (state is ItemMovementError) {
                   return Center(
                       child: Text(state.message,
                           style: const TextStyle(color: Colors.red)));
+                }
                 if (state is ItemMovementLoaded) {
-                  if (state.movements.isEmpty)
+                  if (state.movements.isEmpty) {
                     return const Center(child: Text('لا توجد حركات مطابقة'));
+                  }
                   return Column(
                     children: [
                       _buildSummaryCard(state),
@@ -1101,10 +1104,12 @@ class _InventoryStockTabState extends State<_InventoryStockTab>
           Expanded(
             child: BlocBuilder<ItemMovementCubit, ItemMovementState>(
               builder: (context, state) {
-                if (state is ItemMovementLoading)
+                if (state is ItemMovementLoading) {
                   return const Center(child: CircularProgressIndicator());
-                if (state is InventoryStockLoaded)
+                }
+                if (state is InventoryStockLoaded) {
                   return _buildStockTable(state);
+                }
                 return const Center(
                     child: Text('اضغط "توليد التقرير" لعرض المخزون'));
               },
